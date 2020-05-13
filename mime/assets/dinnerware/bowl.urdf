@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+    <robot name="bowl">
+      <link name="base_link">
+        <visual>
+          <geometry>
+            <mesh filename="bowl.obj" scale="1 1 1"/>
+          </geometry>
+        </visual>
+        <collision>
+          <geometry>
+            <mesh filename="bowl_vhacd.obj" scale="1 1 1"/>
+          </geometry>
+        </collision>
+        <inertial>
+          <origin rpy="0 0 0" xyz="0.0009865565139830516 0.035730112598261074 0.0002714212898301645"/>
+          <mass value="0.01601409912109375"/>
+          <inertia ixx="0.00011749125511072068" ixy="-5.650924129288033e-07" ixz="-6.857844568220082e-07" iyy="0.00017448454988164912" iyz="-2.3197749585619055e-07" izz="0.00011751038695565856"/>
+        </inertial>
+      </link>
+    </robot>

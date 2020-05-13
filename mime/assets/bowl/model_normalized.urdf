@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+    <robot name="model_normalized">
+      <link name="base_link">
+        <visual>
+          <geometry>
+            <mesh filename="model_normalized.obj"/>
+          </geometry>
+          <material name="blue">
+            <color rgba="0 0 .8 1"/>
+          </material>
+        </visual>
+        <collision>
+          <geometry>
+            <mesh filename="model_normalized_vhacd.obj"/>
+          </geometry>
+        </collision>
+        <inertial>
+          <origin rpy="0 0 0" xyz="0.0025959380035556565 0.015212262320698167 0.0012625934655915933"/>
+          <mass value="0.05140972137451172"/>
+          <inertia ixx="0.0021713868904626025" ixy="-1.9994683102913833e-06" ixz="-1.4584497720641209e-05" iyy="0.0034348232139370066" iyz="-4.524599869693581e-06" izz="0.002170991925689248"/>
+        </inertial>
+      </link>
+    </robot>
