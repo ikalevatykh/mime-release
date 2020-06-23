@@ -50,4 +50,3 @@ setup(name='mime',
       )
 
 shutil.copyfile('settings_template.py', 'mime/settings.py')
-print('In order to make the repo to work, modify mime/settings.py')

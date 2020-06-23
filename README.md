@@ -20,18 +20,17 @@ python setup.py develop
 If you find this repository helpful, please cite our work:
 
 ```
-@article{learningsim2real2019,
+@inproceedings{learningsim2real2019,
   author    = {Alexander Pashevich and Robin Strudel and Igor Kalevatykh and Ivan Laptev and Cordelia Schmid},
   title     = {Learning to Augment Synthetic Images for Sim2Real Policy Transfer},
-  journal   = {IROS},
+  booktitle = {IROS},
   year      = {2019},
 }
 
-@article{rlbc2019,
+@inproceedings{rlbc2020,
   author    = {Robin Strudel and Alexander Pashevich and Igor Kalevatykh and Ivan Laptev and Josef Sivic and Cordelia Schmid},
   title     = {Learning to combine primitive skills: A step towards versatile robotic manipulation},
-  journal   = {arXiv},
-  year      = {2019},
-  eprint    = {arXiv:1908.00722},
+  booktitle = {ICRA},
+  year      = {2020},
 }
 ```
