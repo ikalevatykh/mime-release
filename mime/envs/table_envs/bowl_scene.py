@@ -132,11 +132,11 @@ class BowlScene(TableScene):
             skill_sequence += [0, 1]
             skill_sequence += list(2 + np_random.randint(1, size=(1,)))
             self.skill_sequence = skill_sequence
-            print(skill_sequence)
+            # print(skill_sequence)
 
-        if self.skill_data_collection:
-            print('Skill sequence : {}'.format(
-                [self.skill2name[skill] for skill in self.skill_sequence]))
+        # if self.skill_data_collection:
+            # print('Skill sequence : {}'.format(
+                # [self.skill2name[skill] for skill in self.skill_sequence]))
 
     def script(self):
         for i in self.skill_sequence:
