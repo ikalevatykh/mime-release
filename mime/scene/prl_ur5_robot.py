@@ -38,9 +38,9 @@ class PRLUR5Robot:
             prefix="left_",
         )
 
-        right_arm = Arm(self._body, tip_link_name="right_tool")
+        right_arm = Arm(self._body, tip_link_name="right_gripper_grasp_frame")
         right_arm.controller = ArmPositionController(right_arm, gains=0.1)
-        left_arm._kinematics = UR5Kinematics(
+        right_arm._kinematics = UR5Kinematics(
             right_arm._chain,
             prefix="right_",
         )
