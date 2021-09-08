@@ -9,4 +9,5 @@ from .scene import Scene
 from .shape import CollisionShape, VisualShape
 from .texture import Texture
 from .universal_robot import UR5
+from .prl_ur5_robot import PRLUR5Robot
 from .vr import VR

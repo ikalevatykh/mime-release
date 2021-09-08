@@ -25,29 +25,40 @@ class Body(JointArray):
     @property
     def name(self):
         info = pb.getBodyInfo(self.body_id, physicsClientId=self.client_id)
-        return info[-1].decode('utf8')
+        return info[-1].decode("utf8")
 
     def link(self, name):
-        return next((Link(self.body_id, i.index, self.client_id)
-                     for i in self.info if i.link_name == name), None)
+        return next(
+            (
+                Link(self.body_id, i.index, self.client_id)
+                for i in self.info
+                if i.link_name == name
+            ),
+            None,
+        )
 
     def joint(self, name):
-        return next((Joint(self.body_id, i.index, self.client_id)
-                     for i in self.info if i.joint_name == name), None)
+        return next(
+            (
+                Joint(self.body_id, i.index, self.client_id)
+                for i in self.info
+                if i.joint_name == name
+            ),
+            None,
+        )
 
     def joints(self, names):
         indices = []
         for name in names:
-            ind = next((i.index for i in self.info if i.joint_name == name),
-                       None)
-            assert ind is not None, \
-                'Unknown joint "{}" on body {} "{}"'.format(
-                    name, self.body_id, self.name)
+            ind = next((i.index for i in self.info if i.joint_name == name), None)
+            assert ind is not None, 'Unknown joint "{}" on body {} "{}"'.format(
+                name, self.body_id, self.name
+            )
             indices.append(ind)
         return JointArray(self.body_id, indices, self.client_id)
 
     def links(self):
-        return (Link(self.body_id, i) for i in self.joint_indices)
+        return (Link(self.body_id, i, self.client_id) for i in self.joint_indices)
 
     def __getitem__(self, key):
         if isinstance(key, collections.Iterable):
@@ -57,7 +68,9 @@ class Body(JointArray):
 
     @property
     def position(self):
-        return pb.getBasePositionAndOrientation(self.body_id, physicsClientId=self.client_id)
+        return pb.getBasePositionAndOrientation(
+            self.body_id, physicsClientId=self.client_id
+        )
 
     @position.setter
     def position(self, pos_orn):
@@ -68,7 +81,8 @@ class Body(JointArray):
         if len(orn) == 3:
             orn = pb.getQuaternionFromEuler(orn)
         pb.resetBasePositionAndOrientation(
-            self.body_id, pos, orn, physicsClientId=self.client_id)
+            self.body_id, pos, orn, physicsClientId=self.client_id
+        )
 
     @property
     def color(self):
@@ -94,20 +108,20 @@ class Body(JointArray):
         return Dynamics(self._body_id, -1, self.client_id)
 
     def get_overlapping_objects(self):
-        """ Return all the unique ids of objects that have axis aligned
-            bounding box overlap with a axis aligned bounding box of
-            a given body. """
+        """Return all the unique ids of objects that have axis aligned
+        bounding box overlap with a axis aligned bounding box of
+        a given body."""
         return collision.get_overlapping_objects(self)
 
     def get_contacts(self, body_or_link_b=None):
-        """ Returns the contact points computed during the most recent
-            call to stepSimulation. """
+        """Returns the contact points computed during the most recent
+        call to stepSimulation."""
         return collision.get_contact_points(self, body_or_link_b)
 
     def get_closest_points(self, max_distance, body_or_link_b=None):
-        """ Compute the closest points, independent from stepSimulation.
-            If the distance between objects exceeds this maximum distance,
-            no points may be returned. """
+        """Compute the closest points, independent from stepSimulation.
+        If the distance between objects exceeds this maximum distance,
+        no points may be returned."""
         return collision.get_closest_points(self, body_or_link_b, max_distance)
 
     def get_collisions(self):
@@ -120,11 +134,7 @@ class Body(JointArray):
     @staticmethod
     def load(file_name, client_id, egl=False, **kwargs):
         path = augment_path(file_name)
-        loader = {
-            '.urdf': pb.loadURDF,
-            '.xml': pb.loadMJCF,
-            '.sdf': pb.loadSDF
-        }
+        loader = {".urdf": pb.loadURDF, ".xml": pb.loadMJCF, ".sdf": pb.loadSDF}
         loader = loader[path.suffix.lower()]
         ids = loader(str(path), physicsClientId=client_id, **kwargs)
         if isinstance(ids, collections.Iterable):
@@ -132,93 +142,93 @@ class Body(JointArray):
         return Body(ids, client_id, egl)
 
     @staticmethod
-    def create(visual_id,
-               collision_id,
-               client_id,
-               pos=(0, 0, 0),
-               orn=(0, 0, 0, 1),
-               mass=0,
-               egl=False):
+    def create(
+        visual_id,
+        collision_id,
+        client_id,
+        pos=(0, 0, 0),
+        orn=(0, 0, 0, 1),
+        mass=0,
+        egl=False,
+    ):
         body_id = pb.createMultiBody(
             baseVisualShapeIndex=visual_id,
             baseCollisionShapeIndex=collision_id,
             basePosition=pos,
             baseOrientation=orn,
             baseMass=mass,
-            physicsClientId=client_id)
+            physicsClientId=client_id,
+        )
         return Body(body_id, client_id, egl)
 
     @staticmethod
     def box(size, client_id, collision=False, mass=0, egl=False):
         size = np.array(size) / 2
         vis_id = pb.createVisualShape(
-            pb.GEOM_BOX, halfExtents=size, physicsClientId=client_id)
+            pb.GEOM_BOX, halfExtents=size, physicsClientId=client_id
+        )
         col_id = -1
         if collision:
             col_id = pb.createCollisionShape(
-                pb.GEOM_BOX, halfExtents=size, physicsClientId=client_id)
+                pb.GEOM_BOX, halfExtents=size, physicsClientId=client_id
+            )
         return Body.create(vis_id, col_id, client_id, mass=mass, egl=egl)
 
     @staticmethod
     def sphere(radius, client_id, collision=False, mass=0, egl=False):
         vis_id = pb.createVisualShape(
-            pb.GEOM_SPHERE, radius=radius, physicsClientId=client_id)
+            pb.GEOM_SPHERE, radius=radius, physicsClientId=client_id
+        )
         col_id = -1
         if collision:
             col_id = pb.createCollisionShape(
-                pb.GEOM_SPHERE, radius=radius, physicsClientId=client_id)
+                pb.GEOM_SPHERE, radius=radius, physicsClientId=client_id
+            )
         return Body.create(vis_id, col_id, client_id, mass=mass, egl=egl)
 
     @staticmethod
     def cylinder(radius, height, client_id, collision=False, mass=0, egl=False):
         vis_id = pb.createVisualShape(
-            pb.GEOM_CYLINDER,
-            radius=radius,
-            length=height,
-            physicsClientId=client_id)
+            pb.GEOM_CYLINDER, radius=radius, length=height, physicsClientId=client_id
+        )
         col_id = -1
         if collision:
             col_id = pb.createCollisionShape(
                 pb.GEOM_CYLINDER,
                 radius=radius,
                 height=height,
-                physicsClientId=client_id)
+                physicsClientId=client_id,
+            )
         return Body.create(vis_id, col_id, client_id, mass=mass, egl=egl)
 
     @staticmethod
     def capsule(radius, height, client_id, collision=False, mass=0, egl=False):
         vis_id = pb.createVisualShape(
-            pb.GEOM_CAPSULE,
-            radius=radius,
-            length=height,
-            physicsClientId=client_id)
+            pb.GEOM_CAPSULE, radius=radius, length=height, physicsClientId=client_id
+        )
         col_id = -1
         if collision:
             col_id = pb.createCollisionShape(
-                pb.GEOM_CAPSULE,
-                radius=radius,
-                height=height,
-                physicsClientId=client_id)
+                pb.GEOM_CAPSULE, radius=radius, height=height, physicsClientId=client_id
+            )
         return Body.create(vis_id, col_id, client_id, mass=mass, egl=egl)
 
     @staticmethod
-    def mesh(file_name, client_id, collision_file_name=None, scale=1, mass=0, egl=False):
+    def mesh(
+        file_name, client_id, collision_file_name=None, scale=1, mass=0, egl=False
+    ):
         path = str(augment_path(file_name))
         if np.isscalar(scale):
-            scale = (scale, ) * 3
+            scale = (scale,) * 3
         vis_id = pb.createVisualShape(
-            pb.GEOM_MESH,
-            fileName=path,
-            meshScale=scale,
-            physicsClientId=client_id)
+            pb.GEOM_MESH, fileName=path, meshScale=scale, physicsClientId=client_id
+        )
         col_id = -1
         if collision_file_name is not None:
             path = str(augment_path(collision_file_name))
             col_id = pb.createCollisionShape(
-                pb.GEOM_MESH,
-                fileName=path,
-                meshScale=scale,
-                physicsClientId=client_id)
+                pb.GEOM_MESH, fileName=path, meshScale=scale, physicsClientId=client_id
+            )
         return Body.create(vis_id, col_id, client_id, mass=mass, egl=egl)
 
     def __eq__(self, other):

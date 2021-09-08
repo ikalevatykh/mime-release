@@ -1,4 +1,6 @@
 import numpy as np
+
+from math import radians
 from .controllable import Controllable
 
 
@@ -10,8 +12,10 @@ class ParallelGripper(Controllable):
         tip_links = (body.link(left_tip_name), body.link(right_tip_name))
 
         # motor joints
-        joint_ids = [next((i.index for i in reversed(tip.info.path) if i.is_prismatic), None)
-                     for tip in tip_links]
+        joint_ids = [
+            next((i.index for i in reversed(tip.info.path) if i.is_prismatic), None)
+            for tip in tip_links
+        ]
         joints = body[joint_ids]
         upper = np.max(np.abs(joints[0].info.limits))
 
@@ -41,3 +45,45 @@ class ParallelGripper(Controllable):
         t1, t2 = self._joints.state.applied_joint_motor_torques
         return t1, -t2
 
+
+class RG6Gripper(Controllable):
+    def __init__(self, body, prefix="left_"):
+        super(RG6Gripper, self).__init__()
+
+        self._body = body
+
+        self._grasping_frame = body.link(f"{prefix}gripper_body")
+
+        self._joints = body.joints(
+            [
+                f"{prefix}gripper_joint",
+                f"{prefix}gripper_finger_1_truss_arm_joint",
+                f"{prefix}gripper_finger_1_safety_shield_joint",
+                f"{prefix}gripper_finger_1_finger_tip_joint",
+                f"{prefix}gripper_mirror_joint",
+                f"{prefix}gripper_finger_2_truss_arm_joint",
+                f"{prefix}gripper_finger_2_safety_shield_joint",
+                f"{prefix}gripper_finger_2_finger_tip_joint",
+            ]
+        )
+
+        self._default_joints_pos = self._joints.state.positions
+
+        self._right_tip = body.link(f"{prefix}gripper_finger_1_flex_finger")
+        self._left_tip = body.link(f"{prefix}gripper_finger_2_flex_finger")
+
+        self._max_limit, self._min_limit = 1.3, 0.0
+
+        for jt in self.joints:
+            jt.child_link.dynamics.contact_constraint = (100, 100)
+
+    @property
+    def joints(self):
+        return self._joints
+
+    def reset(self):
+        self._joints.reset(self._default_joints_pos)
+        super(RG6Gripper, self).reset()
+
+    def get_contacts(self):
+        return self._body.get_contacts()
