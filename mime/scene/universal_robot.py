@@ -83,7 +83,7 @@ class UR5Kinematics:
         T0w = np.linalg.inv(Tw0)
 
         Tw6 = H(f"{prefix}ee_link")
-        Twt = H(f"{prefix}gripper_grasp_frame")
+        Twt = H(chain.tip.info.link_name)
         Tt6 = np.dot(np.linalg.inv(Twt), Tw6)
         T6t = np.linalg.inv(Tt6)
 
@@ -115,7 +115,7 @@ class UR5Kinematics:
 
         Arguments:
             desc {str} -- configuraton description like 'right up forward'.
-                            Posiible options: left/right shoulder,
+                            Posible options: left/right shoulder,
                             up/down elbow, forward/backward wrist
         """
 
@@ -178,7 +178,6 @@ class UR5Kinematics:
         q_sol = q_sol[mask]
 
         mask = [all(self._get_configuration(q) * self.kin_indicies >= 0) for q in q_sol]
-
         q_sol = q_sol[mask]
 
         if np.any(q_sol) and q_init is not None:

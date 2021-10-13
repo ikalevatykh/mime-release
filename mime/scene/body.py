@@ -90,9 +90,6 @@ class Body(JointArray):
 
     @color.setter
     def color(self, value):
-        if self.egl:
-            # egl has a bug: when the color is set twice, it crashes
-            return
         self.visual_shape.rgba_color = value
 
     @property

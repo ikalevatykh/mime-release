@@ -1,7 +1,15 @@
+from enum import Enum
 import numpy as np
 import pybullet as pb
 
-from bulletman.core.constraint import Constraint
+from .constraint import Constraint
+
+
+class GraspState(Enum):
+    Opened = 0
+    Closed = 1
+    Opening = 2
+    Closing = 3
 
 
 class GripperPositionController(object):
@@ -9,6 +17,7 @@ class GripperPositionController(object):
         joints = gripper.joints
         upper = np.max(np.abs(joints[0].info.limits))
 
+        self._state = GraspState.Opened
         self._gripper = gripper
         self._joints = joints
         self._upper = upper
@@ -64,7 +73,7 @@ class GripperPositionController(object):
 class RG6GripperController(object):
     def __init__(self, gripper):
         self._gripper = gripper
-        self._velocity = 2.4
+        self._velocity = 2
         self._force = 10.0
         self._gain = 1.0
         self._blocked_moment = 0.1
@@ -73,7 +82,7 @@ class RG6GripperController(object):
 
         self._left_block = False
         self._right_block = False
-        self._closed = False
+        self._object_grasped = False
 
     def reset(self):
         self._detach_grasped_body()
@@ -83,7 +92,15 @@ class RG6GripperController(object):
         self._move_to(position)
         self._left_block = False
         self._right_block = False
-        self._closed = False
+        self._state = GraspState.Opened
+        self._history_position = []
+        self._object_grasped = False
+
+    def grasped(self):
+        return self._object_grasped
+
+    def opened(self):
+        return self._state == GraspState.Opened
 
     @property
     def kinematic_grasp(self):
@@ -101,25 +118,58 @@ class RG6GripperController(object):
 
     @target_velocity.setter
     def target_velocity(self, value):
+        if value > 0.0:
+            if self._state != GraspState.Opened:
+                self._state = GraspState.Opening
+        elif value < 0.0:
+            if self._state != GraspState.Closed:
+                self._state = GraspState.Closing
         self._target_velocity = float(value)
 
+    @property
+    def state(self):
+        if self._state == GraspState.Opened:
+            return 2
+        elif self._state == GraspState.Closed:
+            return -2
+        else:
+            return self._target_velocity
+
     def step(self, dt):
-        if self._target_velocity:
-            if self._target_velocity < 0 and self._kinematic_grasp:
+        position = np.array(self._target_position.copy())
+        if GraspState.Opening == self._state:
+            if self._kinematic_grasp:
                 self._detach_grasped_body()
-            elif (
-                self._target_velocity > 0
-                and self._kinematic_grasp
-                and not self._kinematic_constraint
-            ):
+            if self._history_position:
+                position = self._history_position.pop()
+            else:
+                self._state = GraspState.Opened
+
+        elif GraspState.Closing == self._state:
+            self._history_position.append(position.copy())
+
+            step = self._compute_step(dt, self._target_velocity)
+            position = np.clip(
+                position - step,
+                self._gripper._min_limit,
+                self._gripper._max_limit,
+            )
+            if self._kinematic_grasp:
                 self._attach_grasped_body()
-            self._step(dt, self._target_velocity)
+                if self._object_grasped:
+                    self._state = GraspState.Closed
 
-    def grasped(self):
-        return self._closed
+        if np.any(position != self._target_position):
+            self._move_to(position)
 
-    def opened(self):
-        return not self._closed
+    def _compute_step(self, dt, vel):
+        return (
+            vel
+            * dt
+            * np.array(
+                [int(not self._left_block)] * 4 + [int(not self._right_block)] * 4
+            )
+        )
 
     def _step(self, dt, vel):
         position = np.array(self._target_position.copy())
@@ -215,7 +265,7 @@ class RG6GripperController(object):
             )
             for jt in self._gripper.joints:
                 jt.child_link.dynamics.contact_constraint = (0.1, 0.1)
-            self._closed = True
+            self._object_grasped = True
 
     def _detach_grasped_body(self):
         if self._kinematic_constraint is not None:
@@ -224,7 +274,7 @@ class RG6GripperController(object):
 
             self._left_block = False
             self._right_block = False
-            self._closed = False
+            self._object_grasped = False
 
             for jt in self._gripper.joints:
                 jt.child_link.dynamics.contact_constraint = (100, 100)

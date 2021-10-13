@@ -11,6 +11,7 @@ from .camera import Camera
 from .arm_control import ArmPositionController
 from .universal_robot import UR5Kinematics
 from .gripper import RG6Gripper
+from .gripper_control import RG6GripperController
 from .robotiq_gripper import *
 
 
@@ -38,6 +39,7 @@ class PRLUR5Robot:
             prefix="left_",
         )
 
+
         right_arm = Arm(self._body, tip_link_name="right_gripper_grasp_frame")
         right_arm.controller = ArmPositionController(right_arm, gains=0.1)
         right_arm._kinematics = UR5Kinematics(
@@ -48,18 +50,27 @@ class PRLUR5Robot:
         gripper = None
         if with_gripper:
             gripper = RG6Gripper(self._body, prefix="left_")
+            gripper.controller = RG6GripperController(gripper)
 
         self._arm = left_arm
         self._right_arm = right_arm
         self._gripper = gripper
-        self._wrist_camera = None
         self.client_id = client_id
+        self._wrist_cameras = []
 
-    def enable_wrist_camera(self, prefix="right_", width=720, height=1280):
+    def enable_wrist_camera(self, prefix="right_", width=1280, height=720):
         link = self._body.link(f"{prefix}camera_color_optical_frame")
-        cam = Camera(width, height)
+        cam = Camera(width, height, self._body.client_id)
         cam.attach(link=link, orn=(0, 0, np.pi))
-        self._wrist_camera = cam
+        self._wrist_cameras.append(cam)
+
+    def attach_wrist_camera(
+        self, prefix="right_", pos=(0, 0, 0), orn=(0, 0, np.pi), width=1280, height=720
+    ):
+        link = self._body.link(f"{prefix}camera_color_optical_frame")
+        cam = Camera(width, height, self._body.client_id)
+        cam.attach(link=link, pos=pos, orn=orn)
+        return cam
 
     @property
     def arm(self):
@@ -74,5 +85,5 @@ class PRLUR5Robot:
         return self._gripper
 
     @property
-    def wrist_camera(self):
-        return self._wrist_camera
+    def wrist_cameras(self):
+        return self._wrist_cameras
