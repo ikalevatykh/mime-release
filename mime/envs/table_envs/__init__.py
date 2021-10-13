@@ -30,7 +30,7 @@ env_combinations = list(
     itertools.product(robots, horizons, num_cams, rand_cam, load_egl)
 )
 
-cam_resolution = (240, 240)
+cam_resolution = (640, 480)
 gui_resolution = (640, 480)
 
 for env, kwargs in environments.items():

@@ -6,8 +6,8 @@ from gym.utils import seeding
 class SceneEnv(gym.Env):
     def __init__(self, scene):
         self.metadata = {
-            'render.modes': ['human', 'rgb_array'],
-            'video.frames_per_second': int(np.round(1.0 / scene.dt))
+            "render.modes": ["human", "rgb_array"],
+            "video.frames_per_second": int(np.round(1.0 / scene.dt)),
         }
         self._scene = scene
         self._observe = True
@@ -33,8 +33,8 @@ class SceneEnv(gym.Env):
         self._seed = seed
         return [seed]
 
-    def reset(self):
-        self._scene.reset(self._np_random)
+    def reset(self, **kwargs):
+        self._scene.reset(self._np_random, **kwargs)
         self._reset(self._scene)
         self._scene.modder_reset(self._np_random)
         if self._observe:
@@ -43,6 +43,9 @@ class SceneEnv(gym.Env):
             return None
 
     def step(self, action):
+        from pudb import set_trace
+
+        # set_trace()
         self._set_action(self._scene, action)
         self._scene.step()
 
@@ -54,7 +57,7 @@ class SceneEnv(gym.Env):
         rew = self._scene.get_reward(action)
         failure, message = self._scene.is_task_failure()
         done = success or failure
-        return obs, rew, done, {'success': success, 'failure_message': message}
+        return obs, rew, done, {"success": success, "failure_message": message}
 
     def render(self, mode="rgb_array", close=False):
         if mode != "rgb_array":

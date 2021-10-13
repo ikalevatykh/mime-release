@@ -2,13 +2,25 @@ import math
 import numpy as np
 from copy import deepcopy
 
+from yaml import load
+
+try:
+    from yaml import CLoader as Loader
+except ImportError:
+    from yaml import Loader
+
+
 from ...scene import Body, DebugCamera, VRCamera, Camera, Scene, UR5, PRLUR5Robot
 from .utils import conf_to_radians
 from .table_modder import TableModder
+from mime.config import assets_path
+
+
+CAMERA_CFG_PATH = assets_path() / "prl_ur5" / "camera.yml"
 
 
 class TableScene(Scene):
-    """ Base scene for tasks with robot on table """
+    """Base scene for tasks with robot on table"""
 
     def __init__(self, robot_type="UR5", randomize=False, **kwargs):
         super(TableScene, self).__init__(**kwargs)
@@ -74,15 +86,20 @@ class TableScene(Scene):
             robot.gripper.reset()
 
             # set joints initial position
-            self._lab_init_qpos = np.array([-1.57, -1.57, -1.57, 0.0, 1.57, -0.785])
+            lab_init_qpos = np.array([-42, -94, -114, -99, -118, -147])
+            self._lab_init_qpos = np.array([math.radians(v) for v in lab_init_qpos])
             robot.arm.reset(self._lab_init_qpos)
 
-            right_arm_init_qpos = [-36, -134, -73, 22, -54, 3]
+            # right_arm_init_qpos = [-37, -129, -60, 21, -53, -3]
+            with open(str(CAMERA_CFG_PATH)) as f:
+                self.env_cfg = load(f, Loader=Loader)
+
+            self.camera_cfgs = self.env_cfg["camera_cfgs"]
+            self.camera_cfgs = [conf_to_radians(cg) for cg in self.camera_cfgs]
+            self.default_right_arm_state = self.camera_cfgs[0]
 
             # set camera arm to fix pos
-            self._right_arm_init_qpos = np.array(
-                [math.radians(v) for v in right_arm_init_qpos]
-            )
+            self._right_arm_init_qpos = self.default_right_arm_state.values()
 
             robot.right_arm.reset(self._right_arm_init_qpos)
 
@@ -96,6 +113,9 @@ class TableScene(Scene):
             self._robot = UR5(with_gripper=True, fixed=True, client_id=self.client_id)
             self._workspace = [[0.25, -0.3, 0.02], [0.8, 0.3, 0.3]]
             self._robot.arm.controller.workspace = self._workspace
+
+            self._safe_height = [0.08, 0.15]
+            self._gripper_workspace = self._workspace
             table = Body.load("plane.urdf", self.client_id, egl=self._load_egl)
             self._modder._cage_urdf = "ur_description/cage.urdf"
 
@@ -103,10 +123,11 @@ class TableScene(Scene):
             self._robot = PRLUR5Robot(
                 with_gripper=True, fixed=True, client_id=self.client_id
             )
-            self._workspace = [[-0.21, -0.06, 0.02], [0.21, 0.16, 0.25]]
-            self._robot.arm.controller.workspace = self._workspace
 
-            self._gripper_workspace = [[-0.15, -0.08, 0.02], [0.15, 0.15, 0.25]]
+            self._safe_height = [0.08, 0.15]
+
+            self._workspace = [[-0.5, -0.05, 0.0], [0.15, 0.22, 0.3]]
+            self._robot.arm.controller.workspace = self._workspace
 
             self._modder._cage_urdf = "prl_ur5/cage.urdf"
 
@@ -115,12 +136,20 @@ class TableScene(Scene):
                 useFixedBase=True,
                 client_id=self.client_id,
             )
-            self._camera = self._robot.wrist_camera
-
             self.cam_params = {
+                "pos": [0.0, 0.0, 0.0],
+                "orn": [0.0, 0.0, np.pi],
                 "fov": 42.5,
                 "near": 0.1,
                 "far": 10.0,
+            }
+
+            self.cam_rand = {
+                "pos": ([-0.05] * 3, [0.05] * 3),
+                "orn": ([-0.007] * 3, [0.007] * 3),
+                "fov": (-0.0, 0.0),
+                "near": (-0.0, 0.0),
+                "far": (-0.0, 0.0),
             }
 
         else:
