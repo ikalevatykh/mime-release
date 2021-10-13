@@ -4,11 +4,14 @@
   <material name="blue_platinum">
     <color rgba="0.192 0.357 0.451 1"/>
   </material>
+  <material name="red">
+    <color rgba="1.0 0.0 0.0 1"/>
+  </material>
   <link name="prl_ur5_base"><inertial><mass value="0.001"/><inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/></inertial></link>
   <link name="stand_link">
     <visual>
       <geometry>
-        <mesh filename="./meshes/prl_ur5/vention_tower.obj"/>
+        <mesh filename="./meshes/prl_ur5/vention_tower_2_decimated2.stl"/>
       </geometry>
       <material name="blue_platinum" />
     </visual>
@@ -36,18 +39,18 @@
   <link name="table_link">
     <visual>
       <geometry>
-        <mesh filename="./meshes/prl_ur5/vention_table.obj"/>
+        <mesh filename="./meshes/prl_ur5/vention_table4_decimated6.stl"/>
       </geometry>
       <material name="blue_platinum" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="./meshes/prl_ur5/vention_table.obj"/>
+        <mesh filename="./meshes/prl_ur5/vention_table2.stl"/>
       </geometry>
     </collision>
   <inertial><mass value="0.001"/><inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/></inertial></link>
   <joint name="table_fix" type="fixed">
-    <parent link="stand_link"/>
+    <parent link="prl_ur5_base"/>
     <child link="table_link"/>
     <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
   </joint>
