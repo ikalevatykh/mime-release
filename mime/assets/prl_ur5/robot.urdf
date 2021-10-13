@@ -1463,7 +1463,10 @@
   <link name="right_camera_color_frame"><inertial><mass value="0.001"/><inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/></inertial></link>
 
   <joint name="right_camera_color_optical_joint" type="fixed">
-    <origin xyz="0 0 0" rpy="-1.5707963267948966 0 -1.5707963267948966" />
+    <!-- <origin xyz="0 0 0" rpy="-1.5707963267948966 0 -1.5707963267948966" /> -->
+    <!-- <origin xyz="0 0 0" rpy="-1.5540411677948966 0.001 -1.5607963267948966" /> -->
+    <!-- <origin xyz="0 0 0.01" rpy="-1.5540411677948966 0 -1.5707963267948966" /> -->
+    <origin xyz="0 0 0" rpy="-1.5540411677948966 0.001 -1.5607963267948966" />
     <parent link="right_camera_color_frame" />
     <child link="right_camera_color_optical_frame" />
   </joint>
