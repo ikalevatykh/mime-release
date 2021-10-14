@@ -19,24 +19,14 @@ def gathering_task(
     worker_id,
     env_name,
     randomize,
-    egl,
     num_scenes,
     task_queue,
 ):
-    resolution = (480, 640)
 
     print(f"Env. name {env_name}")
 
     env = gym.make(env_name)
-    if "grasp" in env_name:
-        env = GraspNetEnv(resolution, enable_egl=egl, randomize=randomize)
-    elif "cube" in env_name:
-        env = CubeEnv(resolution, enable_egl=egl, randomize=randomize)
-    elif "robot" in env_name:
-        env = PRLCubeEnv(resolution, enable_egl=egl, randomize=randomize)
-    else:
-        env = GraspNetEnv(resolution, enable_egl=egl, randomize=randomize)
-
+    cube_label = 2
     samples = []
     pbar = None
     if worker_id == 0:
@@ -45,12 +35,10 @@ def gathering_task(
     for i in range(num_scenes):
         valid = False
         while not valid:
-            env.reset()
-            obs = env.render()
-            valid = obs["valid"]
-
-        if worker_id == 0:
-            start_t = time.time()
+            obs = env.reset()
+            seg = obs["mask0"]
+            area = np.sum(seg == cube_label)
+            valid = area > 150
 
         samples.append(obs)
         if pbar is not None:
@@ -64,8 +52,8 @@ def gathering_task(
 
 @click.command()
 @click.option("-o", "--output-path")
-@click.option("-e", "--env-name", default="PRL_UR5-PickCamEnv-v0", type=str)
-@click.option("-ns", "--num-scenes", default=100, type=int)
+@click.option("-e", "--env-name", default="PRL_UR5-PickRandCamEnv-v0", type=str)
+@click.option("-ns", "--num-scenes", default=40000, type=int)
 @click.option("-nw", "--num-workers", default=1, type=int)
 @click.option("-randomize", "--randomize/--no-randomize", default=False, is_flag=True)
 def collect(
