@@ -1,18 +1,22 @@
-import pickle as pkl
+import click
 import mime
 import gym
 
 import torchvision.transforms as T
 import matplotlib.pyplot as plt
 import numpy as np
+import pickle as pkl
 
 from tqdm import tqdm
 from pathlib import Path
+from torchvision.transforms import InterpolationMode
 
 from robos2r.data.lmdb import list_to_lmdb
 
 
-def main():
+@click.command()
+@click.option("-db", "--debug/--no-debug", default=False, is_flag=True)
+def main(debug):
 
     directory = Path("/home/rgarciap/Datasets/sim2real/real/multicam/")
     data_files = []
@@ -32,15 +36,26 @@ def main():
     # TODO: How to pass it to camera env
     crop_size = 224
     resize_size = 224
-    crop_transform = T.Compose(
+
+    resize_im = T.Compose(
         [
             T.ToPILImage(),
             T.Resize(resize_size),
-            T.CenterCrop(crop_size),
+        ]
+    )
+    resize_seg = T.Compose(
+        [
+            T.ToPILImage(),
+            T.Resize(resize_size, interpolation=InterpolationMode.NEAREST),
         ]
     )
 
+    crop_transform = T.CenterCrop(crop_size)
+
     env = gym.make("PRL_UR5-PickCamEnv-v0")
+    if debug:
+        scene = env.unwrapped.scene
+        scene.renders(True)
 
     clean_data_idx = []
 
@@ -71,12 +86,22 @@ def main():
             sim_obs = env.reset(
                 cube_pose=cube_pose,
                 gripper_pose=gripper_pose,
-                right_arm_joints_qp=right_arm_joints_qp,
             )
-            # im_real = crop_transform(instance["rgb"][:, :, :3])
-            im = sim_obs["rgb0"]
-            seg = sim_obs["mask0"]
 
+            env.scene.robot.right_arm.reset(right_arm_joints_qp)
+            camera = env.scene.robot._wrist_cameras[0]
+            camera.shot()
+            im = np.array(crop_transform(resize_im(camera.rgb)))
+            seg = np.array(crop_transform(resize_seg(camera.mask)))
+            im_real = np.array(crop_transform(resize_im(instance["rgb"][:, :, :3])))
+
+            # plt.subplot(121)
+            # plt.imshow(im_real)
+            # plt.subplot(122)
+            # plt.imshow(im)
+            # plt.show()
+            plt.imshow(seg)
+            plt.show()
             area = np.sum(seg == cube_label)
             if area > 150:
                 clean_data_idx.append((scene_idx, instance_idx))
