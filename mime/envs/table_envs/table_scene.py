@@ -136,17 +136,37 @@ class TableScene(Scene):
                 useFixedBase=True,
                 client_id=self.client_id,
             )
+            # self.cam_params = {
+            #     "pos": [0.0, 0.0, 0.0],
+            #     "orn": [0.0, 0.0, np.pi],
+            #     "fov": 42.5,
+            #     "near": 0.1,
+            #     "far": 10.0,
+            # }
+
             self.cam_params = {
-                "pos": [0.0, 0.0, 0.0],
-                "orn": [0.0, 0.0, np.pi],
+                "target": (-0.225, 0, 0),
+                "distance": 1.12,
+                "yaw": 90,
+                "pitch": -52.5,
                 "fov": 42.5,
-                "near": 0.1,
+                "near": 0.001,
                 "far": 10.0,
             }
 
+            # self.cam_rand = {
+            #     "pos": ([-0.05] * 3, [0.05] * 3),
+            #     "orn": ([-0.007] * 3, [0.007] * 3),
+            #     "fov": (-0.0, 0.0),
+            #     "near": (-0.0, 0.0),
+            #     "far": (-0.0, 0.0),
+            # }
+
             self.cam_rand = {
-                "pos": ([-0.05] * 3, [0.05] * 3),
-                "orn": ([-0.007] * 3, [0.007] * 3),
+                "target": ([0] * 3, [0] * 3),
+                "distance": (-0.02, 0.02),
+                "yaw": (-5, 5),
+                "pitch": (-7.5, 7.5),
                 "fov": (-0.0, 0.0),
                 "near": (-0.0, 0.0),
                 "far": (-0.0, 0.0),

@@ -39,8 +39,8 @@ class PRLUR5Robot:
             prefix="left_",
         )
 
-
-        right_arm = Arm(self._body, tip_link_name="right_gripper_grasp_frame")
+        # We want the tip to be the camera frame
+        right_arm = Arm(self._body, tip_link_name="right_camera_color_optical_frame")
         right_arm.controller = ArmPositionController(right_arm, gains=0.1)
         right_arm._kinematics = UR5Kinematics(
             right_arm._chain,

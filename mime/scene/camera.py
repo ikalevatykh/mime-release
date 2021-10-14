@@ -140,8 +140,16 @@ class Camera(object):
         # print('cam', sum(self.avg_fps)/len(self.avg_fps))
 
     @property
+    def view_mat(self):
+        return np.array(self._view_mat).reshape((4, 4), order="F")
+
+    @property
+    def proj_mat(self):
+        return np.array(self._proj_mat).reshape((4, 4), order="F")
+
+    @property
     def shape(self):
-        """ Width and height tuple. """
+        """Width and height tuple."""
         return self._shape
 
     @property
@@ -164,19 +172,19 @@ class Camera(object):
 
     @property
     def gray(self):
-        """ List of pixel grayscales, in range char(0..255). """
+        """List of pixel grayscales, in range char(0..255)."""
         return np.dot(self.rgb, [0.299, 0.587, 0.114]).astype(np.uint8)
 
     @property
     def depth(self):
-        """ Depth buffer, list of floats. """
+        """Depth buffer, list of floats."""
         near = self._near_proj
         far = self._far_proj  # Camera near, far
         metric_depth = far * near / (far - (far - near) * self._depth)
         return metric_depth
 
     def depth_uint8(self, kn, kf):
-        """ Depth buffer converted to range char(0..255). """
+        """Depth buffer converted to range char(0..255)."""
         # kn = 0.35 # Realsense near
         # kf = 1.55 # Realsense far
         # kn = 0.5 # kinect1 near
@@ -199,31 +207,31 @@ class Camera(object):
             self._render_flags &= ~pb.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX
 
     def casts_shadow(self, flag):
-        """ 1 for shadows, 0 for no shadows. """
+        """1 for shadows, 0 for no shadows."""
         self._render_options["shadow"] = 1 if flag else 0
 
     def set_light_direction(self, vec3):
-        """ Light direction. """
+        """Light direction."""
         self._render_options["lightDirection"] = vec3
 
     def set_light_color(self, vec3):
-        """ Directional light color in [RED, GREEN, BLUE] in range 0..1. """
+        """Directional light color in [RED, GREEN, BLUE] in range 0..1."""
         self._render_options["lightColor"] = vec3
 
     def set_light_distance(self, value):
-        """ Distance of the light along the normalized light direction. """
+        """Distance of the light along the normalized light direction."""
         self._render_options["lightDistance"] = value
 
     def set_light_ambient_coeff(self, valuem):
-        """ Light ambient coefficient. """
+        """Light ambient coefficient."""
         self._render_options["lightAmbientCoeff"] = value
 
     def set_light_diffuse_coeff(self, value):
-        """ Light diffuse coefficient. """
+        """Light diffuse coefficient."""
         self._render_options["lightDiffuseCoeff"] = value
 
     def set_light_specular_coeff(self, value):
-        """ Light specular coefficient. """
+        """Light specular coefficient."""
         self._render_options["lightSpecularCoeff"] = value
 
 

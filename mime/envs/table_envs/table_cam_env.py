@@ -4,6 +4,10 @@ import torchvision.transforms as T
 from torchvision.transforms import InterpolationMode
 from .table_env import TableEnv
 from ...scene import Camera
+from robos2r.core.tf import (
+    translation_from_matrix,
+    quaternion_from_matrix,
+)
 
 
 class TableCamEnv(TableEnv):
@@ -71,27 +75,50 @@ class TableCamEnv(TableEnv):
                 camera.view_at(target=target, distance=dist, yaw=yaw, pitch=pitch)
                 cameras.append((camera, near, far))
         elif robot_type == "PRL_UR5":
-            fov, near, far = (
-                cam_params["fov"],
-                cam_params["near"],
-                cam_params["far"],
+            # fov, near, far = (
+            #     cam_params["fov"],
+            #     cam_params["near"],
+            #     cam_params["far"],
+            # )
+            # for i in range(num_cameras):
+            #     if len(scene.robot.wrist_cameras) < num_cameras:
+            #         w, h = self._cam_resolution
+            #         scene.robot.wrist_cameras.append(
+            #             scene.robot.attach_wrist_camera(width=w, height=h)
+            #         )
+            #     camera = scene.robot.wrist_cameras[i]
+            #     pos = rand_params["pos"][i]
+            #     orn = rand_params["orn"][i]
+            #     fov = rand_params["fov"][i]
+            #     near = rand_params["near"][i]
+            #     far = rand_params["far"][i]
+
+            #     camera_link = camera._attach_link
+            #     camera.attach(camera_link, pos=pos, orn=orn)
+            #     camera.project(fov=fov, near=near, far=far)
+            #     cameras.append((camera, near, far))
+
+            params = list(
+                zip(
+                    rand_params["target"],
+                    rand_params["distance"],
+                    rand_params["yaw"],
+                    rand_params["pitch"],
+                    rand_params["fov"],
+                    rand_params["near"],
+                    rand_params["far"],
+                )
             )
             for i in range(num_cameras):
-                if len(scene.robot.wrist_cameras) < num_cameras:
+                if len(scene.robot.wrist_cameras) < i + 1:
                     w, h = self._cam_resolution
                     scene.robot.wrist_cameras.append(
                         scene.robot.attach_wrist_camera(width=w, height=h)
                     )
                 camera = scene.robot.wrist_cameras[i]
-                pos = rand_params["pos"][i]
-                orn = rand_params["orn"][i]
-                fov = rand_params["fov"][i]
-                near = rand_params["near"][i]
-                far = rand_params["far"][i]
-
-                camera_link = camera._attach_link
-                camera.attach(camera_link, pos=pos, orn=orn)
+                target, distance, yaw, pitch, fov, near, far = params[i]
                 camera.project(fov=fov, near=near, far=far)
+                camera.view_at(target=target, distance=distance, yaw=yaw, pitch=pitch)
                 cameras.append((camera, near, far))
 
         self.cameras = cameras
@@ -119,15 +146,26 @@ class TableCamEnv(TableEnv):
 
         for i, camera_nf in enumerate(self.cameras):
             camera, near, far = camera_nf
+
+            if scene._robot_type == "PRL_UR5":
+                robot = self._scene.robot
+                cam_view_mat = camera.view_mat
+                cam_pos = translation_from_matrix(np.linalg.inv(cam_view_mat))
+                cam_orn = quaternion_from_matrix(np.linalg.inv(cam_view_mat))
+                cam_orn = [-cam_orn[3], -cam_orn[2], cam_orn[1], cam_orn[0]]
+                q0 = robot.right_arm.controller.joints_target
+                q = robot.right_arm.kinematics.inverse(cam_pos, cam_orn, q0)
+                robot.right_arm.reset(q)
+                obs_dic[f"camera_optical_frame_tf{i}"] = (cam_pos, cam_orn)
+
             camera.shot()
             rgb = camera.rgb.copy()
             depth = camera.depth_uint8(kn=near, kf=far)
             depth = depth.copy()
             mask = camera.mask.copy()
 
-            obs_dic["rgb{}".format(i)] = np.array(crop_transform(resize_im(rgb)))
-            # depth = camera.depth
-            obs_dic["depth{}".format(i)] = np.array(crop_transform(resize_seg(depth)))
-            obs_dic["mask{}".format(i)] = np.array(crop_transform(resize_seg(mask)))
+            obs_dic[f"rgb{i}"] = np.array(crop_transform(resize_im(rgb)))
+            obs_dic[f"depth{i}"] = np.array(crop_transform(resize_seg(depth)))
+            obs_dic[f"mask{i}"] = np.array(crop_transform(resize_seg(mask)))
 
         return obs_dic

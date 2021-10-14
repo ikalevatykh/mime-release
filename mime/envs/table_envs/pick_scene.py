@@ -26,13 +26,12 @@ class PickScene(TableScene):
         self,
         np_random,
         gripper_pose=None,
-        camera_pose=None,
         cube_pose=None,
-        right_arm_joints_qp=None,
     ):
         """
         Reset the cube position and arm position.
         """
+
         super(PickScene, self).reset(np_random)
         modder = self._modder
 
@@ -49,8 +48,6 @@ class PickScene(TableScene):
 
         if self._target is not None:
             self._target.remove()
-
-        self.robot.arm.reset(right_arm_joints_qp)
 
         if gripper_pose is None:
             x_gripper_min, x_gripper_max = (
@@ -78,10 +75,8 @@ class PickScene(TableScene):
         q = self.robot.arm.kinematics.inverse(gripper_pos, gripper_orn, q0)
         self.robot.arm.reset(q)
 
-        if right_arm_joints_qp is not None:
-            self.robot.right_arm.reset(right_arm_joints_qp)
         # load and set cage to a random position
-        # modder.load_cage(np_random)
+        modder.load_cage(np_random)
 
         # load cube, set to random size and random position
         cube, cube_size = modder.load_mesh("cube", self._cube_size_range, np_random)
