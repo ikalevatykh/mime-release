@@ -200,6 +200,8 @@ class UR5Kinematics:
         Returns:
             list(6) / None -- joint positions or None if solution not found
         """
+        if len(orn) == 3:
+            orn = pb.getQuaternionFromEuler(orn)
 
         if q_init is None:
             q_init = np.zeros(6, dtype=np.float64)
