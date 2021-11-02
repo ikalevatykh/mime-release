@@ -29,6 +29,7 @@ class PickEnv(TableEnv):
             dict(
                 distance_to_goal=scene.distance_to_target,
                 target_position=scene.target_position,
+                target_orientation=scene.target_orientation,
             )
         )
 
@@ -58,6 +59,7 @@ class PickCamEnv(TableCamEnv):
             dict(
                 distance_to_goal=scene.distance_to_target,
                 target_position=scene.target_position,
+                target_orientation=scene.target_orientation,
             )
         )
 

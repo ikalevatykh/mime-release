@@ -5,22 +5,29 @@ from math import pi
 from .table_scene import TableScene
 from .table_modder import TableModder
 from ..script import Script
+from mime.config import assets_path
+from .utils import load_textures
+
+OBJ_TEXTURES_PATH = assets_path() / "textures" / "objects" / "simple"
 
 
 class PickScene(TableScene):
     def __init__(self, **kwargs):
         super(PickScene, self).__init__(**kwargs)
         self._target = None
-        self._modder = TableModder(self, self._randomize)
 
         # linear velocity x2 for the real setup
         v, w = self._max_tool_velocity
         self._max_tool_velocity = (1.5 * v, w)
 
-        self._cube_size_range = {"low": 0.05, "high": 0.05}
+        self._cube_size_range = {"low": 0.03, "high": 0.07}
 
-    def load(self):
-        super(PickScene, self).load()
+    def load(self, np_random):
+        super(PickScene, self).load(np_random)
+
+    def load_textures(self, np_random):
+        super().load_textures(np_random)
+        self._modder._textures["objects"] = load_textures(OBJ_TEXTURES_PATH, np_random)
 
     def reset(
         self,
@@ -35,11 +42,14 @@ class PickScene(TableScene):
         super(PickScene, self).reset(np_random)
         modder = self._modder
 
+        # load and randomize cage
+        modder.load_cage(np_random)
+        if self._domain_rand:
+            modder.randomize_cage_visual(np_random)
+
         # define workspace, tool position and cube position
         low, high = self.workspace
         low, high = np.array(low.copy()), np.array(high.copy())
-        low[:2] += 0.05
-        high[:2] -= 0.05
 
         if cube_pose is None:
             cube_pos = np_random.uniform(low=low, high=high)
@@ -75,17 +85,15 @@ class PickScene(TableScene):
         q = self.robot.arm.kinematics.inverse(gripper_pos, gripper_orn, q0)
         self.robot.arm.reset(q)
 
-        # load and set cage to a random position
-        modder.load_cage(np_random)
-
         # load cube, set to random size and random position
         cube, cube_size = modder.load_mesh("cube", self._cube_size_range, np_random)
-
-        cube.color = (11.0 / 151.0, 56.0 / 127.0, 60.0 / 255.0, 1)
-
+        cube_color = (11.0 / 255.0, 124.0 / 255.0, 96.0 / 255.0, 1.0)
+        cube.color = cube_color
         self._cube_size = cube_size
         self._target = cube
         self._target.position = (cube_pos[0], cube_pos[1], self._cube_size / 2)
+        if self._domain_rand:
+            modder.randomize_object_color(np_random, cube, cube_color)
 
     def script(self):
         """
@@ -110,7 +118,7 @@ class PickScene(TableScene):
         return np.array(pos_cube) - np.array(pos_base)
 
     @property
-    def target_rotation(self):
+    def target_orientation(self):
         _, orn_cube = self._target.position
         orn_cube_euler = pb.getEulerFromQuaternion(orn_cube)
         return np.array([orn_cube_euler[-1] / np.pi * 180])
