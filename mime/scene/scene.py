@@ -1,3 +1,8 @@
+import os
+
+os.environ["MESA_GL_VERSION_OVERRIDE"] = "3.3"
+os.environ["MESA_GLSL_VERSION_OVERRIDE"] = "330"
+
 import pybullet as pb
 
 
@@ -16,7 +21,7 @@ class Scene(object):
 
     @property
     def simulation_step(self):
-        """ Physics simulation step (seconds). """
+        """Physics simulation step (seconds)."""
         return self._simulation_step
 
     @simulation_step.setter
@@ -25,7 +30,7 @@ class Scene(object):
 
     @property
     def dt(self):
-        """ State observation step (seconds). """
+        """State observation step (seconds)."""
         return self._observation_step
 
     @dt.setter
@@ -34,7 +39,7 @@ class Scene(object):
 
     @property
     def gui_resolution(self):
-        """ Width and height (tuple) of the GUI window. """
+        """Width and height (tuple) of the GUI window."""
         return self._gui_resolution
 
     @gui_resolution.setter
@@ -42,7 +47,7 @@ class Scene(object):
         self._gui_resolution = wh
 
     def apply_modder(self, modder):
-        """ Apply scene modifications after creating. """
+        """Apply scene modifications after creating."""
         self._modders.append(modder)
 
     def modder_reset(self, np_random):
@@ -66,25 +71,25 @@ class Scene(object):
     def reset(self, np_random):
         if not self._connected:
             self.connect()
-            self.load()
+            self.load(np_random)
         self._reset(np_random)
         pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 1)
 
     def connect(self):
-        options = ''
+        options = ""
         if pb.GUI == self._conn_mode:
-            options = '--width={} --height={}'.format(*self._gui_resolution)
+            options = "--width={} --height={}".format(*self._gui_resolution)
         self.client_id = pb.connect(self._conn_mode, options=options)
         if self._load_egl:
-            print('Loading egl plugin...')
+            print("Loading egl plugin...")
             import pkgutil
-            egl = pkgutil.get_loader('eglRenderer')
+
+            egl = pkgutil.get_loader("eglRenderer")
             self._plugin = pb.loadPlugin(
-                egl.get_filename(),
-                "_eglRendererPlugin",
-                physicsClientId=self.client_id)
+                egl.get_filename(), "_eglRendererPlugin", physicsClientId=self.client_id
+            )
         if self.client_id < 0:
-            raise Exception('Cannot connect to pybullet')
+            raise Exception("Cannot connect to pybullet")
         if self._conn_mode == pb.GUI:
             pb.configureDebugVisualizer(pb.COV_ENABLE_GUI, 0)
             pb.configureDebugVisualizer(pb.COV_ENABLE_RENDERING, 1)
@@ -93,10 +98,12 @@ class Scene(object):
         pb.setPhysicsEngineParameter(
             numSolverIterations=50,
             fixedTimeStep=self.simulation_step,
-            physicsClientId=self.client_id)
+            physicsClientId=self.client_id,
+        )
         pb.setGravity(0, 0, -9.8, physicsClientId=self.client_id)
         pb.configureDebugVisualizer(
-            pb.COV_ENABLE_RENDERING, 0, physicsClientId=self.client_id)
+            pb.COV_ENABLE_RENDERING, 0, physicsClientId=self.client_id
+        )
         self._connected = True
 
     def step(self):
@@ -114,23 +121,23 @@ class Scene(object):
         except pb.error:
             raise RuntimeError(pb.error)
 
-    def load(self):
-        self._load()
+    def load(self, np_random):
+        self._load(np_random)
         for modder in self._modders:
             modder.load(self)
 
-    def _load(self):
-        """ Called once when connecting to physics server
+    def _load(self, np_random):
+        """Called once when connecting to physics server
         Use to load objects in the scene
         """
         raise NotImplementedError
 
     def _reset(self, np_random):
-        """ Called once before start.
-        Use to setup your scene. """
+        """Called once before start.
+        Use to setup your scene."""
         raise NotImplementedError
 
     def _step(self, dt):
-        """ Called for each simulation step.
-        Use to update controllers / get precise feedback. """
+        """Called for each simulation step.
+        Use to update controllers / get precise feedback."""
         raise NotImplementedError

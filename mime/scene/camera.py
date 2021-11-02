@@ -11,7 +11,15 @@ class Camera(object):
         self._view_mat = None
         self._attach_link = None
         self._attach_pose = None
-        self._render_options = {}
+        self._render_options = {
+            # "lightColor": (1, 0, 0),
+            # "lightDirection": (0, -0.2, 10),
+            # "lightDiffuseCoeff": 100,
+            # "lightSpecularCoeff": 100,
+            # "lightAmbientCoeff": 100,
+            # "lightDistance": 100,
+            "shadow": 1,
+        }
         self._render_flags = 0
         self._rgba = np.zeros(shape + (4,), dtype=np.uint8)
         self._mask = np.zeros(shape, dtype=np.uint8)
@@ -124,9 +132,6 @@ class Camera(object):
             viewMatrix=self._view_mat,
             renderer=renderer,
             flags=self._render_flags,
-            lightDirection=(2, 0, 1),
-            lightColor=(1, 1, 1),
-            shadow=0,
             physicsClientId=self.client_id,
             **self._render_options,
         )
@@ -206,6 +211,24 @@ class Camera(object):
         else:
             self._render_flags &= ~pb.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX
 
+    def set_lighting(
+        self,
+        light_color,
+        light_distance,
+        light_direction,
+        diffuse_coeff,
+        specular_coeff,
+        ambient_coeff,
+        shadows,
+    ):
+        self.set_light_color(light_color)
+        self.set_light_distance(light_distance)
+        self.set_light_direction(light_direction)
+        self.set_light_diffuse_coeff(diffuse_coeff)
+        self.set_light_specular_coeff(specular_coeff)
+        self.set_light_ambient_coeff(ambient_coeff)
+        self.casts_shadow(shadows)
+
     def casts_shadow(self, flag):
         """1 for shadows, 0 for no shadows."""
         self._render_options["shadow"] = 1 if flag else 0
@@ -222,7 +245,7 @@ class Camera(object):
         """Distance of the light along the normalized light direction."""
         self._render_options["lightDistance"] = value
 
-    def set_light_ambient_coeff(self, valuem):
+    def set_light_ambient_coeff(self, value):
         """Light ambient coefficient."""
         self._render_options["lightAmbientCoeff"] = value
 

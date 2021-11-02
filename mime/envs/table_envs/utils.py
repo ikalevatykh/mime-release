@@ -2,9 +2,11 @@ import math
 import os
 import numpy as np
 import json
+import random
 
 import pybullet as pb
 
+from tqdm import tqdm
 from mime.scene import Body
 from mime.settings import SHAPENET_PATH
 
@@ -127,3 +129,22 @@ def sample_without_overlap(
 
 def conf_to_radians(joint_values):
     return {k: math.radians(v) for k, v in joint_values.items()}
+
+
+def load_textures(path, np_random, max_number=None):
+    textures = []
+    print(path)
+    texture_paths = list(path.glob("*.jpg"))
+    np_random.shuffle(texture_paths)
+
+    textures_len = len(texture_paths)
+
+    if max_number is not None:
+        textures_len = min(textures_len, max_number)
+
+    print(f"Loading {textures_len} textures for {path.name}.")
+    for i in tqdm(range(textures_len)):
+        texture_path = texture_paths[i]
+        texture_id = pb.loadTexture(str(texture_path))
+        textures.append(texture_id)
+    return textures

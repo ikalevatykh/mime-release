@@ -1,5 +1,8 @@
 import numpy as np
+import pybullet as pb
+import pickle as pkl
 import torchvision.transforms as T
+from mime.config import assets_path
 
 from torchvision.transforms import InterpolationMode
 from .table_env import TableEnv
@@ -8,6 +11,8 @@ from robos2r.core.tf import (
     translation_from_matrix,
     quaternion_from_matrix,
 )
+
+CAMERA_JOINTS_PATH = assets_path() / "prl_ur5" / "cam_joints_pos.pkl"
 
 
 class TableCamEnv(TableEnv):
@@ -31,6 +36,14 @@ class TableCamEnv(TableEnv):
         self._num_cameras = num_cameras
         self._cam_resolution = cam_resolution
         self._crop_size = crop_size
+
+        self.done_move = False
+
+        if self._view_rand:
+            with open(str(CAMERA_JOINTS_PATH), "rb") as f:
+                self.random_joints_pos = pkl.load(f)
+
+        self.joints_pos = []
 
     def _reset(self, scene):
         np_random = self._np_random
@@ -75,29 +88,6 @@ class TableCamEnv(TableEnv):
                 camera.view_at(target=target, distance=dist, yaw=yaw, pitch=pitch)
                 cameras.append((camera, near, far))
         elif robot_type == "PRL_UR5":
-            # fov, near, far = (
-            #     cam_params["fov"],
-            #     cam_params["near"],
-            #     cam_params["far"],
-            # )
-            # for i in range(num_cameras):
-            #     if len(scene.robot.wrist_cameras) < num_cameras:
-            #         w, h = self._cam_resolution
-            #         scene.robot.wrist_cameras.append(
-            #             scene.robot.attach_wrist_camera(width=w, height=h)
-            #         )
-            #     camera = scene.robot.wrist_cameras[i]
-            #     pos = rand_params["pos"][i]
-            #     orn = rand_params["orn"][i]
-            #     fov = rand_params["fov"][i]
-            #     near = rand_params["near"][i]
-            #     far = rand_params["far"][i]
-
-            #     camera_link = camera._attach_link
-            #     camera.attach(camera_link, pos=pos, orn=orn)
-            #     camera.project(fov=fov, near=near, far=far)
-            #     cameras.append((camera, near, far))
-
             params = list(
                 zip(
                     rand_params["target"],
@@ -115,11 +105,33 @@ class TableCamEnv(TableEnv):
                     scene.robot.wrist_cameras.append(
                         scene.robot.attach_wrist_camera(width=w, height=h)
                     )
+                    self.joints_pos.append([0, 0, 0, 0, 0, 0])
                 camera = scene.robot.wrist_cameras[i]
                 target, distance, yaw, pitch, fov, near, far = params[i]
                 camera.project(fov=fov, near=near, far=far)
                 camera.view_at(target=target, distance=distance, yaw=yaw, pitch=pitch)
                 cameras.append((camera, near, far))
+
+                if scene._domain_rand:
+                    self.scene._modder.randomize_lighting(np_random, camera)
+                else:
+                    self.scene._modder.randomize_lighting(np_random, camera)
+
+                cam_view_mat = camera.view_mat
+                cam_pos = translation_from_matrix(np.linalg.inv(cam_view_mat))
+                cam_orn = quaternion_from_matrix(np.linalg.inv(cam_view_mat))
+                cam_orn = [-cam_orn[3], -cam_orn[2], cam_orn[1], cam_orn[0]]
+
+                q = pb.calculateInverseKinematics(
+                    scene.robot._body.body_id,
+                    scene.robot._body.link(
+                        "right_camera_color_optical_frame"
+                    ).link_index,
+                    targetPosition=cam_pos,
+                    targetOrientation=cam_orn,
+                )[14:20]
+
+                self.joints_pos[i] = q
 
         self.cameras = cameras
 
@@ -148,15 +160,11 @@ class TableCamEnv(TableEnv):
             camera, near, far = camera_nf
 
             if scene._robot_type == "PRL_UR5":
-                robot = self._scene.robot
-                cam_view_mat = camera.view_mat
-                cam_pos = translation_from_matrix(np.linalg.inv(cam_view_mat))
-                cam_orn = quaternion_from_matrix(np.linalg.inv(cam_view_mat))
-                cam_orn = [-cam_orn[3], -cam_orn[2], cam_orn[1], cam_orn[0]]
-                q0 = robot.right_arm.controller.joints_target
-                q = robot.right_arm.kinematics.inverse(cam_pos, cam_orn, q0)
-                robot.right_arm.reset(q)
-                obs_dic[f"camera_optical_frame_tf{i}"] = (cam_pos, cam_orn)
+                q = self.joints_pos[i]
+                scene.robot.right_arm.reset(q)
+
+                cam_pos, cam_orn = self._scene.robot.right_arm.tool_position
+                obs_dic[f"camera_optical_frame_tf{i}"] = (cam_pos, -np.array(cam_orn))
 
             camera.shot()
             rgb = camera.rgb.copy()

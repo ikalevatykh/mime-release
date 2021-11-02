@@ -13,16 +13,20 @@ except ImportError:
 from ...scene import Body, DebugCamera, VRCamera, Camera, Scene, UR5, PRLUR5Robot
 from .utils import conf_to_radians
 from .table_modder import TableModder
+from .utils import load_textures
 from mime.config import assets_path
 
 
 CAMERA_CFG_PATH = assets_path() / "prl_ur5" / "camera.yml"
+TABLE_TEXTURES_PATH = assets_path() / "textures" / "table"
+ROBOT_TEXTURES_PATH = assets_path() / "textures" / "robot"
+BACKGROUND_TEXTURES_PATH = assets_path() / "textures" / "background"
 
 
 class TableScene(Scene):
     """Base scene for tasks with robot on table"""
 
-    def __init__(self, robot_type="UR5", randomize=False, **kwargs):
+    def __init__(self, robot_type="UR5", randomize=False, domain_rand=False, **kwargs):
         super(TableScene, self).__init__(**kwargs)
         arm_dof = {"UR5": 6, "PRL_UR5": 6}[robot_type]
 
@@ -40,6 +44,7 @@ class TableScene(Scene):
         self._table = None
         self._cage = None
         self._robot = None
+        self._domain_rand = domain_rand
         self._modder = TableModder(self, self._randomize)
 
         self.cam_params = {
@@ -47,7 +52,7 @@ class TableScene(Scene):
             "distance": 1.62,
             "yaw": 90,
             "pitch": -28,
-            "fov": 60,
+            "fov": 42.5,
             "near": 0.5,
             "far": 2.0,
         }
@@ -55,7 +60,7 @@ class TableScene(Scene):
             "target": ([-0.05] * 3, [0.05] * 3),
             "distance": (-0.05, 0.05),
             "yaw": (-20, 20),
-            "pitch": (-6, 6),
+            "pitch": (-7.5, 7.5),
             "fov": (-0.0, 0.0),
             "near": (-0.0, 0.0),
             "far": (-0.0, 0.0),
@@ -63,7 +68,7 @@ class TableScene(Scene):
 
     def _reset(self, np_random):
         """
-        Reset the robot position and cage positon.
+        Reset the robot position and cage position.
         """
         robot = self._robot
         cam_params = self.cam_params
@@ -72,6 +77,15 @@ class TableScene(Scene):
 
         # reset robot state
         self._modder.position_robot_base(np_random)
+
+        # load and set cage to a random position
+        # self._modder.load_cage(np_random)
+
+        if self._domain_rand:
+            self._modder.randomize_robot_visual(np_random)
+            self._modder.randomize_table_visual(np_random)
+            self._modder.randomize_cage_visual(np_random)
+
         if self._robot_type == "UR5":
             robot.arm.kinematics.set_configuration("right up forward")
             robot.gripper.reset("Pinch")
@@ -103,10 +117,13 @@ class TableScene(Scene):
 
             robot.right_arm.reset(self._right_arm_init_qpos)
 
-    def _load(self):
+    def _load(self, np_random):
         """
         Load robot, table and a camera for recording videos
         """
+
+        if self._domain_rand:
+            self.load_textures(np_random)
 
         # add robot
         if self._robot_type == "UR5":
@@ -126,47 +143,33 @@ class TableScene(Scene):
 
             self._safe_height = [0.08, 0.15]
 
+            # self._workspace = [[-0.75, -0.05, 0.0], [0.15, 0.22, 0.3]]
             self._workspace = [[-0.5, -0.05, 0.0], [0.15, 0.22, 0.3]]
             self._robot.arm.controller.workspace = self._workspace
 
-            self._modder._cage_urdf = "prl_ur5/cage.urdf"
+            self._modder._cage_urdf = "prl_ur5/cage_floor.urdf"
 
             table = Body.load(
                 "prl_ur5/table.urdf",
                 useFixedBase=True,
                 client_id=self.client_id,
             )
-            # self.cam_params = {
-            #     "pos": [0.0, 0.0, 0.0],
-            #     "orn": [0.0, 0.0, np.pi],
-            #     "fov": 42.5,
-            #     "near": 0.1,
-            #     "far": 10.0,
-            # }
 
             self.cam_params = {
                 "target": (-0.225, 0, 0),
                 "distance": 1.12,
                 "yaw": 90,
-                "pitch": -52.5,
+                "pitch": -37.5,
                 "fov": 42.5,
-                "near": 0.001,
+                "near": 0.01,
                 "far": 10.0,
             }
-
-            # self.cam_rand = {
-            #     "pos": ([-0.05] * 3, [0.05] * 3),
-            #     "orn": ([-0.007] * 3, [0.007] * 3),
-            #     "fov": (-0.0, 0.0),
-            #     "near": (-0.0, 0.0),
-            #     "far": (-0.0, 0.0),
-            # }
 
             self.cam_rand = {
                 "target": ([0] * 3, [0] * 3),
                 "distance": (-0.02, 0.02),
                 "yaw": (-5, 5),
-                "pitch": (-7.5, 7.5),
+                "pitch": (-5.5, 5.5),
                 "fov": (-0.0, 0.0),
                 "near": (-0.0, 0.0),
                 "far": (-0.0, 0.0),
@@ -177,6 +180,13 @@ class TableScene(Scene):
 
         # add table
         self._table = table
+
+    def load_textures(self, np_random):
+        self._modder._textures["table"] = load_textures(TABLE_TEXTURES_PATH, np_random)
+        self._modder._textures["robot"] = load_textures(ROBOT_TEXTURES_PATH, np_random)
+        self._modder._textures["background"] = load_textures(
+            BACKGROUND_TEXTURES_PATH, np_random, max_number=400
+        )
 
     def _step(self, dt):
         self._robot.arm.controller.step(dt)
