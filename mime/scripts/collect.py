@@ -8,10 +8,6 @@ import os
 import torch.multiprocessing as mp
 
 from tqdm import tqdm
-from bulletman.envs.grasp import GraspNetEnv
-from bulletman.envs.cube import CubeEnv
-from bulletman.envs.prl_ur5 import PRLUR5Env
-from bulletman.envs import PRLCubeEnv
 from robos2r.data.lmdb import LMDBDataset, list_to_lmdb
 
 
@@ -26,7 +22,7 @@ def gathering_task(
     print(f"Env. name {env_name}")
 
     env = gym.make(env_name)
-    cube_label = 2
+    cube_label = 3
     samples = []
     pbar = None
     if worker_id == 0:
@@ -62,7 +58,6 @@ def collect(
     num_scenes,
     num_workers,
     randomize,
-    egl,
 ):
     print(f"Write to {output_path}")
     scenes_per_worker = num_scenes // num_workers
