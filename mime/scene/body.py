@@ -90,7 +90,30 @@ class Body(JointArray):
 
     @color.setter
     def color(self, value):
-        self.visual_shape.rgba_color = value
+        pb.changeVisualShape(
+            self.body_id,
+            -1,
+            rgbaColor=value,
+        )
+
+    def randomize_shape_link(self, np_random, textures, link_id):
+        if len(textures) > 0:
+            texture_id = np_random.choice(textures)
+        else:
+            texture_id = -1
+        color = np.append(np_random.uniform(0, 1, 3), 1)
+        pb.changeVisualShape(
+            self.body_id,
+            link_id,
+            textureUniqueId=texture_id,
+            rgbaColor=color,
+        )
+
+    def randomize_shape(self, np_random, textures, per_link=True):
+        self.randomize_shape_link(np_random, textures, -1)
+        if per_link:
+            for link_id in range(pb.getNumJoints(self.body_id)):
+                self.randomize_shape_link(np_random, textures, link_id)
 
     @property
     def visual_shape(self):
@@ -122,7 +145,7 @@ class Body(JointArray):
         return collision.get_closest_points(self, body_or_link_b, max_distance)
 
     def get_collisions(self):
-        """ Return all objects that intersect a given body. """
+        """Return all objects that intersect a given body."""
         return collision.get_collisions(self)
 
     def remove(self):
