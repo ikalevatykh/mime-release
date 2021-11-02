@@ -234,6 +234,54 @@ class Body(JointArray):
         return Body.create(vis_id, col_id, client_id, mass=mass, egl=egl)
 
     @staticmethod
+    def rope(
+        position,
+        length,
+        client_id,
+        n_parts=20,
+        radius=0.005,
+        color=[1, 1, 1],
+        color_ends=[1, 1, 1],
+        egl=False,
+    ):
+        position = np.float32(position)
+        increment = length / n_parts
+
+        # Parts Visual / Collision
+        part_shape = pb.createCollisionShape(pb.GEOM_BOX, halfExtents=[radius] * 3)
+        part_visual = pb.createVisualShape(pb.GEOM_SPHERE, radius=radius * 1.5)
+
+        parent_id = -1
+        bodies = []
+        for i in range(n_parts):
+            # position[2] += increment
+            position[0] += increment
+            # Base mass = 0.1
+            part_id = pb.createMultiBody(
+                0.1, part_shape, part_visual, basePosition=position
+            )
+            if parent_id > -1:
+                constraint_id = pb.createConstraint(
+                    parentBodyUniqueId=parent_id,
+                    parentLinkIndex=-1,
+                    childBodyUniqueId=part_id,
+                    childLinkIndex=-1,
+                    jointType=pb.JOINT_POINT2POINT,
+                    jointAxis=(0, 0, 0),
+                    parentFramePosition=(0, 0, increment),
+                    childFramePosition=(0, 0, 0),
+                )
+                pb.changeConstraint(constraint_id, maxForce=20)
+            if (i > 0) and (i < n_parts - 1):
+                part_color = color + [1]
+            else:
+                part_color = color_ends + [1]
+            pb.changeVisualShape(part_id, -1, rgbaColor=part_color)
+            parent_id = part_id
+            bodies.append(Body(part_id, client_id, egl))
+        return bodies
+
+    @staticmethod
     def mesh(
         file_name, client_id, collision_file_name=None, scale=1, mass=0, egl=False
     ):

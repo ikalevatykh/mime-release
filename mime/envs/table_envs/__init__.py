@@ -7,10 +7,12 @@ from mime.envs.table_envs.pick_env import *
 from mime.envs.table_envs.tower_env import *
 from mime.envs.table_envs.pour_env import *
 from mime.envs.table_envs.bowl_env import *
+from mime.envs.table_envs.rope_env import *
 
 
 environments = {
     "Pick": dict(max_episode_steps=200),
+    "Rope": dict(max_episode_steps=400),
     "Push": dict(max_episode_steps=800),
     "Tower": dict(max_episode_steps=1500),
     "Pour": dict(max_episode_steps=400),
@@ -25,9 +27,10 @@ robots = ["UR5", "PRL_UR5"]
 horizons = [None, 1]
 num_cams = [0, 1, 5, 10, 15, 20]
 rand_cam = [False, True]
+domain_rand = [False, True]
 load_egl = [False, True]
 env_combinations = list(
-    itertools.product(robots, horizons, num_cams, rand_cam, load_egl)
+    itertools.product(robots, horizons, num_cams, rand_cam, domain_rand, load_egl)
 )
 
 cam_resolution = (640, 480)
@@ -35,8 +38,8 @@ gui_resolution = (640, 480)
 
 for env, kwargs in environments.items():
     orig_env_horizon = kwargs["max_episode_steps"]
-    for robot, horizon, num_cam, rand_cam, load_egl in env_combinations:
-        horizon_str, camera_str, egl_str = "", "", ""
+    for robot, horizon, num_cam, rand_cam, domain_rand, load_egl in env_combinations:
+        horizon_str, camera_str, dr_str, egl_str = "", "", "", ""
         if horizon is not None:
             kwargs = dict(max_episode_steps=horizon)
             horizon_str = "Short"
@@ -52,14 +55,16 @@ for env, kwargs in environments.items():
                     # we don't want envs with multiple non-random cameras
                     continue
                 camera_str += "{}RandCam".format(num_cam)
+        if domain_rand:
+            dr_str = "DR-"
 
-        # example of full name UR5-ShortEGL-Pick5RandCam
+        # example of full name UR5-ShortEGL-Pick5RandCam-DR
         if horizon_str + egl_str != "":
-            env_name = "{}-{}{}-{}{}".format(
-                robot, horizon_str, egl_str, env, camera_str
+            env_name = "{}{}-{}{}-{}{}".format(
+                dr_str, robot, horizon_str, egl_str, env, camera_str
             )
         else:
-            env_name = "{}-{}{}".format(robot, env, camera_str)
+            env_name = "{}{}-{}{}".format(dr_str, robot, env, camera_str)
         env_file = env_files[env] if env in env_files else env
 
         if num_cam == 0:
@@ -67,7 +72,7 @@ for env, kwargs in environments.items():
                 # for no camera environments there is no difference
                 # we don't want to reregister the environments
                 continue
-            env_args = dict(robot_type=robot, randomize=True)
+            env_args = dict(robot_type=robot, randomize=True, domain_rand=domain_rand)
             if env in extra_env_args:
                 env_args.update(extra_env_args[env])
             register(
@@ -85,6 +90,7 @@ for env, kwargs in environments.items():
                 cam_resolution=cam_resolution,
                 num_cameras=num_cam,
                 randomize=True,
+                domain_rand=domain_rand,
                 load_egl=load_egl,
             )
             if env in extra_env_args:
