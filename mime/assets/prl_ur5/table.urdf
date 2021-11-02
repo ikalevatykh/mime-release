@@ -11,7 +11,7 @@
   <link name="stand_link">
     <visual>
       <geometry>
-        <mesh filename="./meshes/prl_ur5/vention_tower_2_decimated2.stl"/>
+        <mesh filename="./meshes/prl_ur5/vention_tower_3_bis.obj"/>
       </geometry>
       <material name="blue_platinum" />
     </visual>
@@ -39,7 +39,7 @@
   <link name="table_link">
     <visual>
       <geometry>
-        <mesh filename="./meshes/prl_ur5/vention_table4_decimated6.stl"/>
+        <mesh filename="./meshes/prl_ur5/vention_table4_decimated6.obj"/>
       </geometry>
       <material name="blue_platinum" />
     </visual>
