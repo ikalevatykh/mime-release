@@ -67,7 +67,8 @@ class RG6Gripper(Controllable):
             ]
         )
 
-        self._default_joints_pos = self._joints.state.positions
+        self._open_default_joints_pos = [0.0] * 8
+        self._close_default_joints_pos = [1.3] * 8
 
         self._right_tip = body.link(f"{prefix}gripper_finger_1_flex_finger")
         self._left_tip = body.link(f"{prefix}gripper_finger_2_flex_finger")
@@ -81,8 +82,12 @@ class RG6Gripper(Controllable):
     def joints(self):
         return self._joints
 
-    def reset(self):
-        self._joints.reset(self._default_joints_pos)
+    def reset(self, close=False):
+        if close:
+            joints_pos = self._close_default_joints_pos
+        else:
+            joints_pos = self._open_default_joints_pos
+        self._joints.reset(joints_pos)
         super(RG6Gripper, self).reset()
 
     def get_contacts(self):

@@ -14,7 +14,6 @@ from robos2r.data.lmdb import LMDBDataset, list_to_lmdb
 def gathering_task(
     worker_id,
     env_name,
-    randomize,
     num_scenes,
     task_queue,
 ):
@@ -23,6 +22,10 @@ def gathering_task(
 
     env = gym.make(env_name)
     cube_label = 3
+    min_cube_area = 150
+    gripper_label = 0
+    min_gripper_area = 200
+
     samples = []
     pbar = None
     if worker_id == 0:
@@ -32,10 +35,17 @@ def gathering_task(
         valid = False
         while not valid:
             obs = env.reset()
-            seg = obs["mask0"]
-            area = np.sum(seg == cube_label)
-            valid = area > 150
-
+            valid = True
+            for cam_name, cameras_list in env.unwrapped.cameras.items():
+                for i in range(len(cameras_list)):
+                    seg = obs[f"mask_{cam_name}{i}"]
+                    cube_area = np.sum(seg == cube_label)
+                    gripper_area = np.sum(seg == gripper_label)
+                    if cube_area < min_cube_area or gripper_area < min_gripper_area:
+                        valid = False
+                        break
+                if not valid:
+                    break
         samples.append(obs)
         if pbar is not None:
             pbar.update()
@@ -48,16 +58,14 @@ def gathering_task(
 
 @click.command()
 @click.option("-o", "--output-path")
-@click.option("-e", "--env-name", default="PRL_UR5-PickRandCamEnv-v0", type=str)
+@click.option("-e", "--env-name", default="PRL_UR5-EGL-PickEasyRandCamEnv-v0", type=str)
 @click.option("-ns", "--num-scenes", default=40000, type=int)
 @click.option("-nw", "--num-workers", default=1, type=int)
-@click.option("-randomize", "--randomize/--no-randomize", default=False, is_flag=True)
 def collect(
     output_path,
     env_name,
     num_scenes,
     num_workers,
-    randomize,
 ):
     print(f"Write to {output_path}")
     scenes_per_worker = num_scenes // num_workers
@@ -75,7 +83,6 @@ def collect(
             args=(
                 i,
                 env_name,
-                randomize,
                 scenes_per_worker if i < num_workers - 1 else scenes_last_worker,
                 task_queue,
             ),

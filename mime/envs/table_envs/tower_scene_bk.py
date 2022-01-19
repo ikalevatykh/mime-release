@@ -9,17 +9,13 @@ from .utils import sample_without_overlap
 class TowerScene(TableScene):
     def __init__(self, **kwargs):
         super(TowerScene, self).__init__(**kwargs)
-        self._modder = TableModder(self)
+        self._modder = TableModder(self, self._randomize)
 
         self._count_success = 0
         self._num_cubes = 2
         self._cubes = []
         self._cubes_size = []
-
-        if self._rand_obj:
-            self._cube_size_range = {"low": 0.04, "high": 0.06}
-        else:
-            self._cube_sizes = [0.05 + i * 0.01 for i in range(self._num_cubes)]
+        self._cube_size_range = {"low": 0.03, "high": 0.085}
 
         v, w = self._max_tool_velocity
         self._max_tool_velocity = (1.5 * v, w)
@@ -38,7 +34,7 @@ class TowerScene(TableScene):
 
         self._count_success = 0
 
-        low, high = self._object_workspace
+        low, high = self._workspace
         low_arm, high_arm = low.copy(), high.copy()
         low_arm[2] = 0.1
         low_cubes, high_cubes = np.array(low.copy()), np.array(high.copy())
@@ -50,24 +46,15 @@ class TowerScene(TableScene):
         self._cubes = []
         self._cubes_size = []
 
-        gripper_pos, gripper_orn = self.random_gripper_pose(np_random)
-        q0 = self.robot.arm.controller.joints_target
-        q = self.robot.arm.kinematics.inverse(gripper_pos, gripper_orn, q0)
-        self.robot.arm.reset(q)
+        init_qpos = self._lab_init_qpos
+        self.robot.arm.reset(init_qpos)
 
         # load cubes
         num_cubes = self._num_cubes
         cubes = []
         cubes_size = []
         for i in range(num_cubes):
-            if self._rand_obj:
-                cube, cube_size = modder.load_mesh(
-                    "cube", self._cube_size_range, np_random
-                )
-            else:
-                cube, cube_size = modder.load_mesh(
-                    "cube", self._cube_sizes[i], np_random
-                )
+            cube, cube_size = modder.load_mesh("cube", self._cube_size_range, np_random)
             # cube.dynamics.lateral_friction = 10
             cubes.append(cube)
             cubes_size.append(cube_size)
@@ -86,15 +73,9 @@ class TowerScene(TableScene):
             aabbs, _ = sample_without_overlap(
                 cube, aabbs, np_random, low_cubes, high_cubes, 0, 0, min_dist=0.05
             )
-
-            if self._rand_obj:
-                color = np_random.uniform(0, 1, 4)
-            else:
-                color = np.array([11.0 / 255.0, 124.0 / 255.0, 96.0 / 255.0, 1])
+            color = np_random.uniform(0, 1, 4)
             color[3] = 1
             cube.color = color
-            if self._domain_rand:
-                modder.randomize_object_color(np_random, cube, color)
 
     def script(self):
         arm = self.robot.arm

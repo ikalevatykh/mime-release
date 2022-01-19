@@ -4,6 +4,7 @@ import numpy as np
 import pybullet as pb
 
 from . import collision
+from .rope import Rope
 from .dynamics import Dynamics
 from .joint import Joint, JointArray
 from .link import Link
@@ -238,10 +239,12 @@ class Body(JointArray):
         position,
         length,
         client_id,
+        np_random,
         n_parts=20,
         radius=0.005,
         color=[1, 1, 1],
         color_ends=[1, 1, 1],
+        shape_key="xcurly",
         egl=False,
     ):
         position = np.float32(position)
@@ -250,12 +253,80 @@ class Body(JointArray):
         # Parts Visual / Collision
         part_shape = pb.createCollisionShape(pb.GEOM_BOX, halfExtents=[radius] * 3)
         part_visual = pb.createVisualShape(pb.GEOM_SPHERE, radius=radius * 1.5)
+        # part_visual = pb.createVisualShape(pb.GEOM_BOX, halfExtents=[radius] * 3)
+
+        XCURLY_SHAPE = [
+            np.array([1, 1, 0]),
+            np.array([1, 1, 0]),
+            np.array([1, 1, 0]),
+            np.array([1, 1, 0]),
+            np.array([1, 1, 0]),
+            np.array([1, 1, 0]),
+            np.array([1, 0, 0]),
+            np.array([1, -1, 0]),
+            np.array([1, -1, 0]),
+            np.array([1, -1, 0]),
+            np.array([1, -1, 0]),
+            np.array([1, -1, 0]),
+            np.array([1, -1, 0]),
+        ]
+
+        YCURLY_SHAPE = [
+            np.array([1, 1, 0]),
+            np.array([1, 1, 0]),
+            np.array([1, 1, 0]),
+            np.array([1, 1, 0]),
+            np.array([1, 0, 0]),
+            np.array([-1, 1, 0]),
+            np.array([-1, 1, 0]),
+            np.array([-1, 1, 0]),
+            np.array([-1, 1, 0]),
+        ]
+
+        CIRCLE_SHAPE = [
+            np.array([1, -1, 0]),
+            np.array([1, -1, 0]),
+            np.array([0, -1, 0]),
+            np.array([0, -1, 0]),
+            np.array([-1, -1, 0]),
+            np.array([-1, -1, 0]),
+            np.array([-1, 0, 0]),
+            np.array([-1, 0, 0]),
+            np.array([-1, 1, 0]),
+            np.array([-1, 1, 0]),
+            np.array([0, 1, 0]),
+            np.array([0, 1, 0]),
+        ]
+
+        RANDOM_SHAPE = [
+            np.array([0, 0, 1]),
+        ]
+
+        shapes = {
+            "circle": CIRCLE_SHAPE,
+            "xcurly": XCURLY_SHAPE,
+            "ycurly": YCURLY_SHAPE,
+            "random": RANDOM_SHAPE,
+        }
 
         parent_id = -1
         bodies = []
         for i in range(n_parts):
-            # position[2] += increment
-            position[0] += increment
+            if i in [0, 1, n_parts - 2, n_parts - 1]:
+                increment_idx = np.array([1, 0, 0])
+            else:
+                increment_arr = shapes[shape_key]
+                if "xcurly":
+                    increment_arr_idx = np_random.choice(
+                        list(range(len(increment_arr)))
+                    )
+                    increment_idx = increment_arr[increment_arr_idx]
+                else:
+                    increment_idx = increment_arr[i % len(increment_arr)]
+            increment_v = increment / np.sqrt(np.sum(np.abs(increment_idx)))
+            increment_arr = increment_idx * increment_v
+            position += increment_arr
+
             # Base mass = 0.1
             part_id = pb.createMultiBody(
                 0.1, part_shape, part_visual, basePosition=position
@@ -268,10 +339,10 @@ class Body(JointArray):
                     childLinkIndex=-1,
                     jointType=pb.JOINT_POINT2POINT,
                     jointAxis=(0, 0, 0),
-                    parentFramePosition=(0, 0, increment),
+                    parentFramePosition=increment_arr,
                     childFramePosition=(0, 0, 0),
                 )
-                pb.changeConstraint(constraint_id, maxForce=20)
+                pb.changeConstraint(constraint_id, maxForce=100)
             if (i > 0) and (i < n_parts - 1):
                 part_color = color + [1]
             else:
@@ -279,7 +350,8 @@ class Body(JointArray):
             pb.changeVisualShape(part_id, -1, rgbaColor=part_color)
             parent_id = part_id
             bodies.append(Body(part_id, client_id, egl))
-        return bodies
+        rope = Rope(bodies, length, increment, radius)
+        return rope
 
     @staticmethod
     def mesh(

@@ -2,52 +2,20 @@ import itertools
 import types
 import numpy as np
 
+import torch
 import click
 import gym
 import time
+import yaml
 
+from robos2r.model import build_model
 from .agent import Agent
+from .script_agent import ScriptAgent, make_noised
 from .utils import Rate
 from PIL import Image
-import matplotlib.pyplot as plt
-
-
-class ScriptAgent(Agent):
-    def __init__(self, env):
-        super(ScriptAgent, self).__init__(env)
-        self._scripts = env.unwrapped.scene.script()
-        if not isinstance(self._scripts, types.GeneratorType):
-            self._multiple_scripts = False
-            self._steps = itertools.chain(*self._scripts)
-        else:
-            self._multiple_scripts = True
-            self._steps = itertools.chain([])
-
-    def _compute_script(self):
-        script = next(self._scripts, None)
-        if script is None:
-            self._steps = itertools.chain([])
-        else:
-            self._steps = itertools.chain(*script)
-
-    """Pre-compute actions at each new script"""
-
-    def get_action_update(self, obs=None):
-        action = next(self._steps, None)
-        if action is None and self._multiple_scripts:
-            self._compute_script()
-            action = next(self._steps, None)
-
-        return action
-
-
-def make_noised(action):
-    if "joint_velocity" in action:
-        action["joint_velocity"] += np.random.normal(scale=0.01, size=6)
-    if "linear_velocity" in action:
-        action["linear_velocity"] += np.random.normal(scale=0.007, size=3)
-    if "angular_velocity" in action:
-        action["angular_velocity"] += np.random.normal(scale=0.04, size=3)
+from pathlib import Path
+from einops import rearrange
+from torchvision import transforms as T
 
 
 @click.command(help="script_agent env_name [options]")
@@ -62,6 +30,31 @@ def make_noised(action):
     help="whether to show the skills collection",
 )
 def main(env_name, seed, times_repeat, add_noise, skill_collection):
+    print("Loading Augmentor model...")
+    diffaug_model_path = "/home/rgarciap/Remote/models/diffs2r_new/resnet_adam_lr_1e-3_lraug0.01_bs_64_L8/"
+    diffaug_model_path = Path(diffaug_model_path)
+    diffaug_cfg_path = diffaug_model_path / "config.yml"
+
+    with open(str(diffaug_cfg_path), "rb") as f:
+        diffaug_cfg = yaml.load(f, Loader=yaml.FullLoader)
+
+    model_cfg = dict(
+        name="diffaug",
+        reg_output_size=3,
+        aug_pipeline=diffaug_cfg["aug_pipeline"],
+        multi=diffaug_cfg["multi_pipeline"],
+        num_layers=diffaug_cfg["num_layers"],
+        gumbel=diffaug_cfg["gumbel"],
+        backbone_name=diffaug_cfg["backbone_name"],
+    )
+    diffaug_model = build_model(model_cfg)
+    diffaug_ckp_path = diffaug_model_path / "best_checkpoint.pth"
+    checkpoint = torch.load(str(diffaug_ckp_path), map_location="cpu")
+    diffaug_model.load_state_dict(checkpoint["model"])
+    augmentor = diffaug_model.augmentor
+    augmentor.to("cpu")
+    augmentor.eval()
+    print("Model loaded")
 
     env = gym.make(env_name)
     scene = env.unwrapped.scene
@@ -78,36 +71,21 @@ def main(env_name, seed, times_repeat, add_noise, skill_collection):
         done = False
         i = 0
         rate = Rate(scene.dt)
-
         action = agent.get_action()
         if add_noise:
             make_noised(action)
         frames = []
         j = 0
         while not done and action is not None:
-
             obs, reward, done, info = env.step(action)
 
-            print(obs)
+            im = T.ToTensor()(obs["rgb0"]).unsqueeze(0)
+            mask = torch.tensor(obs["mask0"]).unsqueeze(0)
 
-            # cube_label = 3
-
-            # plt.subplot(121)
-            # plt.imshow(obs["rgb_right_cam0"])
-
-            # plt.subplot(122)
-            # plt.imshow(obs["rgb_frontal_cam0"])
-
-            # plt.show()
-
-            # plt.subplot(121)
-            # plt.imshow(obs["mask_right_cam0"])
-
-            # plt.subplot(122)
-            # plt.imshow(obs["mask_frontal_cam0"])
-
-            # plt.show()
-
+            im, mask = augmentor((im, mask))
+            im = rearrange(im.detach().detach().squeeze(0).numpy(), "c h w -> h w c")
+            im = Image.fromarray((im * 255).astype(np.uint8))
+            im.save(f"0/output{j}.jpeg")
             j += 1
             action = agent.get_action()
             if add_noise and action is not None:

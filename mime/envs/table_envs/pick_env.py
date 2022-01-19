@@ -16,6 +16,7 @@ class PickEnv(TableEnv):
             "linear_velocity",
             "grip_forces",
             "grip_width",
+            "gripper_pose",
         )
         self.action_space = self._make_dict_space(
             "linear_velocity",
@@ -30,6 +31,7 @@ class PickEnv(TableEnv):
                 distance_to_goal=scene.distance_to_target,
                 target_position=scene.target_position,
                 target_orientation=scene.target_orientation,
+                gripper_pose=scene.gripper_pose(),
             )
         )
 
@@ -60,6 +62,7 @@ class PickCamEnv(TableCamEnv):
                 distance_to_goal=scene.distance_to_target,
                 target_position=scene.target_position,
                 target_orientation=scene.target_orientation,
+                gripper_pose=scene.gripper_pose(),
             )
         )
 

@@ -14,7 +14,7 @@ class Script(object):
         self.scene = scene
 
     def joint_move(self, arm, pos=None, orn=None, t_acc=1.0, script_id=None):
-        """ Move in joint space with trap velocity profile """
+        """Move in joint space with trap velocity profile"""
         pos0, orn0 = arm.controller.tool_target
         if pos is None:
             pos = pos0
@@ -56,7 +56,7 @@ class Script(object):
             yield a
 
     def tool_move(self, arm, pos=None, orn=None, t_acc=1.0, script_id=None):
-        """ Linear move with trap velocity profile """
+        """Linear move with trap velocity profile"""
         max_v, max_w = self._max_tool_velocity
         pos0, orn0 = arm.controller.tool_target
         dist, axis, angle = np.zeros(3), np.zeros(3), 0.0

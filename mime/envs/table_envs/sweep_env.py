@@ -1,14 +1,14 @@
-from .rope_scene import RopeScene
+from .sweep_scene import SweepScene
 from .table_env import TableEnv
 from .table_cam_env import TableCamEnv
 
 
-class RopeEnv(TableEnv):
+class RopeEnv(SweepEnv):
     """Pick environment, trajectory observation, linear tool control"""
 
     def __init__(self, **kwargs):
-        scene = RopeScene(**kwargs)
-        super(RopeEnv, self).__init__(scene)
+        scene = SweepScene(**kwargs)
+        super(SweepEnv, self).__init__(scene)
 
         self.observation_space = self._make_dict_space(
             "distance_to_target",
@@ -23,7 +23,7 @@ class RopeEnv(TableEnv):
         )
 
     def _get_observation(self, scene):
-        obs_dic = super(RopeEnv, self)._get_observation(scene)
+        obs_dic = super(SweepEnv, self)._get_observation(scene)
         obs_dic.update(
             dict(
                 distance_to_goal=scene.distance_to_target,
@@ -35,14 +35,14 @@ class RopeEnv(TableEnv):
         return obs_dic
 
 
-class RopeCamEnv(TableCamEnv):
+class SweepCamEnv(TableCamEnv):
     """Pick environment, camera observation, linear tool control"""
 
     def __init__(
         self, view_rand, gui_resolution, cam_resolution, num_cameras, **kwargs
     ):
-        scene = RopeScene(**kwargs)
-        super(RopeCamEnv, self).__init__(
+        scene = SweepScene(**kwargs)
+        super(SweepCamEnv, self).__init__(
             scene, view_rand, gui_resolution, cam_resolution, num_cameras
         )
 
@@ -52,7 +52,7 @@ class RopeCamEnv(TableCamEnv):
         )
 
     def _get_observation(self, scene):
-        obs_dic = super(RopeCamEnv, self)._get_observation(scene)
+        obs_dic = super(SweepCamEnv, self)._get_observation(scene)
         obs_dic.update(
             dict(
                 distance_to_goal=scene.distance_to_target,

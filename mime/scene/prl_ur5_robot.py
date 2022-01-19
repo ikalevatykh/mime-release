@@ -32,6 +32,17 @@ class PRLUR5Robot:
             client_id=client_id,
         )
 
+        self.moving_joints_map = {}
+
+        for i in range(pb.getNumJoints(self._body.body_id)):
+            info = pb.getJointInfo(self._body.body_id, i)
+            joint_name = info[1].decode("utf-8", "strict")
+            joint_type = info[2]
+            link_name = info[12].decode("utf-8", "strict")
+
+            if joint_type != pb.JOINT_FIXED:
+                self.moving_joints_map[joint_name] = i
+
         left_arm = Arm(self._body, tip_link_name="left_gripper_grasp_frame")
         left_arm.controller = ArmPositionController(left_arm, gains=0.1)
         left_arm._kinematics = UR5Kinematics(

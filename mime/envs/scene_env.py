@@ -1,6 +1,7 @@
 import gym
 import numpy as np
 from gym.utils import seeding
+from mime.agent import ScriptAgent
 
 
 class SceneEnv(gym.Env):
@@ -43,9 +44,6 @@ class SceneEnv(gym.Env):
             return None
 
     def step(self, action):
-        from pudb import set_trace
-
-        # set_trace()
         self._set_action(self._scene, action)
         self._scene.step()
 
@@ -75,3 +73,6 @@ class SceneEnv(gym.Env):
 
     def _set_action(self, scene, action):
         raise NotImplementedError
+
+    def get_oracle(self):
+        return ScriptAgent(self)

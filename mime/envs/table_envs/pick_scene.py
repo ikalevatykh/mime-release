@@ -20,7 +20,10 @@ class PickScene(TableScene):
         v, w = self._max_tool_velocity
         self._max_tool_velocity = (1.5 * v, w)
 
-        self._cube_size_range = {"low": 0.03, "high": 0.07}
+        if self._rand_obj:
+            self._cube_size_range = {"low": 0.03, "high": 0.07}
+        else:
+            self._cube_size_range = 0.05
 
     def load(self, np_random):
         super(PickScene, self).load(np_random)
@@ -48,7 +51,7 @@ class PickScene(TableScene):
             modder.randomize_cage_visual(np_random)
 
         # define workspace, tool position and cube position
-        low, high = self.workspace
+        low, high = self._object_workspace
         low, high = np.array(low.copy()), np.array(high.copy())
 
         if cube_pose is None:
@@ -59,28 +62,7 @@ class PickScene(TableScene):
         if self._target is not None:
             self._target.remove()
 
-        if gripper_pose is None:
-            x_gripper_min, x_gripper_max = (
-                self._workspace[0][0],
-                self._workspace[1][0],
-            )
-            y_gripper_min, y_gripper_max = (
-                self._workspace[0][1],
-                self._workspace[1][1],
-            )
-            gripper_pos = [
-                np_random.uniform(x_gripper_min, x_gripper_max),
-                np_random.uniform(y_gripper_min, y_gripper_max),
-                np_random.uniform(self._safe_height[0], self._safe_height[1]),
-            ]
-
-            if self._robot_type == "PRL_UR5":
-                gripper_orn = [pi, 0, pi / 2]
-            else:
-                gripper_orn = None
-        else:
-            gripper_pos, gripper_orn = gripper_pose
-
+        gripper_pos, gripper_orn = self.random_gripper_pose(np_random)
         q0 = self.robot.arm.controller.joints_target
         q = self.robot.arm.kinematics.inverse(gripper_pos, gripper_orn, q0)
         self.robot.arm.reset(q)
@@ -127,6 +109,10 @@ class PickScene(TableScene):
     def distance_to_target(self):
         tool_pos, _ = self.robot.arm.tool.state.position
         return np.subtract(self.target_position, tool_pos)
+
+    def gripper_pose(self):
+        tool_pos, tool_orn = self.robot.arm.tool.state.position
+        return (tool_pos, tool_orn)
 
     def get_reward(self, action):
         return 0

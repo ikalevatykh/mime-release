@@ -84,15 +84,18 @@ class RG6GripperController(object):
         self._right_block = False
         self._object_grasped = False
 
-    def reset(self):
+    def reset(self, close=False):
         self._detach_grasped_body()
         self._kinematic_constraint = None
         self._target_velocity = 0
         position = self._gripper.joints.state.positions
+        if close:
+            self._state = GraspState.Closed
+        else:
+            self._state = GraspState.Opened
         self._move_to(position)
         self._left_block = False
         self._right_block = False
-        self._state = GraspState.Opened
         self._history_position = []
         self._object_grasped = False
 
@@ -149,15 +152,20 @@ class RG6GripperController(object):
             self._history_position.append(position.copy())
 
             step = self._compute_step(dt, self._target_velocity)
-            position = np.clip(
-                position - step,
-                self._gripper._min_limit,
-                self._gripper._max_limit,
-            )
-            if self._kinematic_grasp:
-                self._attach_grasped_body()
-                if self._object_grasped:
-                    self._state = GraspState.Closed
+
+            if any(step):
+
+                position = np.clip(
+                    position - step,
+                    self._gripper._min_limit,
+                    self._gripper._max_limit,
+                )
+                if self._kinematic_grasp:
+                    self._attach_grasped_body()
+                    if self._object_grasped:
+                        self._state = GraspState.Closed
+            else:
+                self._state = GraspState.Closed
 
         if np.any(position != self._target_position):
             self._move_to(position)

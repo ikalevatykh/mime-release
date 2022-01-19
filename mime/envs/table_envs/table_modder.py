@@ -4,11 +4,10 @@ from ...scene import Body
 
 
 class TableModder(object):
-    def __init__(self, scene, randomize=False, **kwargs):
+    def __init__(self, scene, **kwargs):
         self.scene = scene
         self.scene._cage = None
         self._cage_urdf = None
-        self._randomize = randomize
         self._textures = {}
 
     def randomize_robot_visual(self, np_random):
@@ -27,7 +26,7 @@ class TableModder(object):
             np_random, self._textures["table"], per_link=True
         )
 
-    def randomize_lighting(self, np_random, camera):
+    def randomize_lighting(self, np_random):
         light_color = np_random.uniform(0, 1, 3)
         light_direction = np.zeros((3))
         while light_direction[0] == 0 and light_direction[1] == 0:
@@ -38,7 +37,7 @@ class TableModder(object):
             0.3, 0.7, size=(3)
         )
 
-        camera.set_lighting(
+        return (
             light_color,
             light_distance,
             light_direction,
@@ -57,19 +56,6 @@ class TableModder(object):
         or cage are present. Randomize cage size and pose.
         """
         if self._cage_urdf is not None:
-            # if self.scene._cage is not None:
-            # self.scene._cage.remove()
-
-            # if self._randomize:
-            #     cage_scaling = np_random.uniform(0.45, 0.7)
-            #     # set cage to random orientation
-            #     cage_pos, cage_ori = np_random.uniform(0, 0.05, 3), (0, 0, 0)
-            #     # cage_ori = np_random.uniform(-np.pi/16, np.pi/16, 3)
-            #     cage_pos[2] += 0.2
-            # else:
-            #     cage_scaling = 0.55
-            #     cage_pos, cage_ori = (0, 0, 0), (0, 0, 0)
-
             if self.scene._cage is None:
                 cage = Body.load(
                     self._cage_urdf,
@@ -154,13 +140,32 @@ class TableModder(object):
 
         return mesh, mesh_size
 
+    def add_marker(self, shape, size_ranges, np_random):
+        marker_size = self.get_size(size_ranges, np_random)
+
+        if shape == "circle":
+            marker = Body.mesh(
+                "circle.obj",
+                self.scene.client_id,
+                scale=[marker_size, marker_size, 1],
+                egl=self.scene._load_egl,
+            )
+        elif shape == "square":
+            marker = Body.mesh(
+                "plane.obj",
+                self.scene.client_id,
+                scale=[marker_size, marker_size, 1],
+                egl=self.scene._load_egl,
+            )
+        else:
+            raise ValueError(f"Incorrect marker shape {shape}.")
+
+        return marker, marker_size
+
     def get_size(self, size_range, np_random):
-        if isinstance(size_range, (float, int)):
+        if isinstance(size_range, (float, int, list)):
             return size_range
 
-        if self._randomize:
-            size = np_random.uniform(size_range["low"], size_range["high"])
-        else:
-            size = (size_range["low"] + size_range["high"]) / 2
+        size = np_random.uniform(size_range["low"], size_range["high"])
 
         return size

@@ -20,6 +20,9 @@ class RopeScene(TableScene):
         # linear velocity x2 for the real setup
         v, w = self._max_tool_velocity
         self._max_tool_velocity = (1.5 * v, w)
+        self.rope_radius = 0.01
+        self.n_parts = 14
+        self.length_rope = 2 * self.rope_radius * self.n_parts * np.sqrt(2)
         self._rope = []
 
     def load(self, np_random):
@@ -45,7 +48,7 @@ class RopeScene(TableScene):
             modder.randomize_cage_visual(np_random)
 
         # define workspace, tool position and cube position
-        low, high = self._object_workspace
+        low, high = self.workspace
         low, high = np.array(low.copy()), np.array(high.copy())
 
         if self._target is not None:
@@ -74,44 +77,29 @@ class RopeScene(TableScene):
         q = self.robot.arm.kinematics.inverse(gripper_pos, gripper_orn, q0)
         self.robot.arm.reset(q)
 
-        valid = False
-        while not valid:
-            if self._rand_obj:
-                self.n_parts = np_random.randint(10, 15)
-                self.rope_radius = np_random.uniform(0.008, 0.02)
-            else:
-                self.n_parts = 15
-                self.rope_radius = 0.01
-            self.length_rope = 2 * self.rope_radius * self.n_parts * np.sqrt(2)
-            # load rope, set to random size and random position
-            rope_pos = np_random.uniform(low=low, high=high)
-            rope_pos[2] = 0.02
-            self._rope = Body.rope(
-                rope_pos,
-                self.length_rope,
-                self.client_id,
-                np_random,
-                n_parts=self.n_parts,
-                color=[0, 0.7, 0.5],
-                color_ends=[0, 0.7, 0.5],
-                radius=self.rope_radius,
-                egl=self._load_egl,
-                shape_key="random",
-            )
-            end1_pos, _ = self._rope.parts[0].position
-            end2_pos, _ = self._rope.parts[-1].position
-            valid = (
-                low[0] < end1_pos[0] < high[0]
-                and low[0] < end2_pos[0] < high[0]
-                and low[1] < end1_pos[1] < high[1]
-                and low[1] < end2_pos[1] < high[1]
-            )
-            if not valid:
-                for part in self._rope.parts:
-                    part.remove()
+        # load rope, set to random size and random position
+        rope_pos = np_random.uniform(low=low, high=high)
+        rope_pos[2] = 0.02
+        self._rope = Body.rope(
+            rope_pos,
+            self.length_rope,
+            self.client_id,
+            n_parts=self.n_parts,
+            color=[0, 0.7, 0.5],
+            color_ends=[0, 0.7, 0.5],
+            radius=self.rope_radius,
+            egl=self._load_egl,
+        )
         self._target = self._rope.parts[0]
         for i in range(1000):
             pb.stepSimulation(physicsClientId=self.client_id)
+
+        self._marker = Body.mesh(
+            "plane.obj", self.client_id, scale=[0.05, 0.05, 1], egl=self._load_egl
+        )
+
+        self._marker.position = [(0, 0, 0.0001), (0, 0, 0, 1)]
+        self._marker.color = [1, 0, 0, 1]
 
     def compute_goal(self):
         middle_part = self._rope.parts[int(len(self._rope.parts) / 2)]
@@ -137,27 +125,19 @@ class RopeScene(TableScene):
         pick_pos_end1 = np.array(pick_pos_end1)
         pick_pos_end2, _ = self._rope.parts[-1].position
         pick_pos_end2 = np.array(pick_pos_end2)
-
-        if pick_pos_end2[0] < pick_pos_end1[0]:
-            pick1_pos = pick_pos_end2
-            pick2_pos = pick_pos_end1
-        else:
-            pick1_pos = pick_pos_end1
-            pick2_pos = pick_pos_end2
-
         sc = Script(self)
         return [
-            sc.tool_move(arm, pick1_pos + [0, 0, 0.1]),
-            sc.tool_move(arm, pick1_pos + [0, 0, z_offset]),
+            sc.tool_move(arm, pick_pos_end1 + [0, 0, 0.1]),
+            sc.tool_move(arm, pick_pos_end1 + [0, 0, z_offset]),
             sc.grip_close(grip),
-            sc.tool_move(arm, pick1_pos + [0, 0, 0.05]),
+            sc.tool_move(arm, pick_pos_end1 + [0, 0, 0.05]),
             sc.tool_move(arm, parts_goal_position[0] + [0, 0, 0.02]),
             sc.grip_open(grip),
-            sc.tool_move(arm, pick2_pos + [0, 0, 0.1]),
-            sc.tool_move(arm, pick2_pos + [0, 0, z_offset]),
+            sc.tool_move(arm, pick_pos_end2 + [0, 0, 0.1]),
+            sc.tool_move(arm, pick_pos_end2 + [0, 0, z_offset]),
             sc.grip_close(grip),
-            sc.tool_move(arm, pick2_pos + [0, 0, 0.05]),
-            sc.tool_move(arm, parts_goal_position[-1] + [0.03, 0, 0.02]),
+            sc.tool_move(arm, pick_pos_end2 + [0, 0, 0.05]),
+            sc.tool_move(arm, parts_goal_position[-1] + [0, 0, 0.02]),
             sc.grip_open(grip),
         ]
 
@@ -182,18 +162,7 @@ class RopeScene(TableScene):
         return 0
 
     def is_task_success(self):
-        pick_pos_end1, _ = self._rope.parts[0].position
-        pick_pos_end2, _ = self._rope.parts[-1].position
-        length_rope = self._rope.distance * (len(self._rope.parts) - 1)
-
-        return (
-            (
-                np.linalg.norm(np.subtract(pick_pos_end1, pick_pos_end2))
-                >= length_rope * 0.99
-            )
-            and pick_pos_end1[-1] < self.rope_radius * 1.1
-            and pick_pos_end2[-1] < self.rope_radius * 1.1
-        )
+        return False
 
 
 def test_scene():
