@@ -127,7 +127,6 @@ class Camera(object):
             )
             self.move_to(pos, orn)
 
-        start_t = time()
         w, h, rgba, depth, mask = pb.getCameraImage(
             width=w,
             height=h,
@@ -138,17 +137,13 @@ class Camera(object):
             physicsClientId=self.client_id,
             **self._render_options,
         )
-        # print(f"Camera image: {time() - start_t}")
 
-        start_t = time()
-        if not isinstance(rgba, np.ndarray):
-            rgba = np.array(rgba, dtype=np.uint8).reshape((h, w, 4))
-            depth = np.array(depth, dtype=np.float32).reshape((h, w))
-            mask = np.array(mask, dtype=np.uint8).reshape((h, w))
-        # print(f"Resize time: {time() - start_t}")
+         # if not isinstance(rgba, np.ndarray):
+         #     rgba = np.array(rgba, dtype=np.uint8).reshape((h, w, 4))
+         #     depth = np.array(depth, dtype=np.float32).reshape((h, w))
+         #     mask = np.array(mask, dtype=np.uint8).reshape((h, w))
 
         self._rgba, self._depth, self._mask = rgba, depth, mask
-        # print("cam", sum(self.avg_fps) / len(self.avg_fps))
 
     @property
     def view_mat(self):

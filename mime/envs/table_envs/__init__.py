@@ -37,7 +37,8 @@ env_combinations = list(
     )
 )
 
-cam_resolution = (1280, 720)
+# cam_resolution = (1280, 720)
+cam_resolution = (569, 320)
 gui_resolution = (640, 480)
 
 for env, kwargs in environments.items():
