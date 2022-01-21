@@ -8,6 +8,8 @@ import time
 
 from .agent import Agent
 from .utils import Rate
+from PIL import Image
+import matplotlib.pyplot as plt
 
 
 class ScriptAgent(Agent):
@@ -28,8 +30,9 @@ class ScriptAgent(Agent):
         else:
             self._steps = itertools.chain(*script)
 
-    '''Pre-compute actions at each new script'''
-    def get_action_update(self):
+    """Pre-compute actions at each new script"""
+
+    def get_action_update(self, obs=None):
         action = next(self._steps, None)
         if action is None and self._multiple_scripts:
             self._compute_script()
@@ -37,22 +40,29 @@ class ScriptAgent(Agent):
 
         return action
 
+
 def make_noised(action):
-    if 'joint_velocity' in action:
-        action['joint_velocity'] += np.random.normal(scale=0.01, size=6)
-    if 'linear_velocity' in action:
-        action['linear_velocity'] += np.random.normal(scale=0.007, size=3)
-    if 'angular_velocity' in action:
-        action['angular_velocity'] += np.random.normal(scale=0.04, size=3)
+    if "joint_velocity" in action:
+        action["joint_velocity"] += np.random.normal(scale=0.01, size=6)
+    if "linear_velocity" in action:
+        action["linear_velocity"] += np.random.normal(scale=0.007, size=3)
+    if "angular_velocity" in action:
+        action["angular_velocity"] += np.random.normal(scale=0.04, size=3)
 
 
-@click.command(help='script_agent env_name [options]')
-@click.argument('env_name', type=str)
-@click.option('-s', '--seed', default=0, help='seed')
-@click.option('-t', '--times-repeat', default=1, help='times to repeat the script')
-@click.option('-n', '--add-noise', is_flag=True, help='adding noise to actions or not')
-@click.option('-sc', '--skill-collection/--no-skill-collection', is_flag=True, help='whether to show the skills collection')
+@click.command(help="script_agent env_name [options]")
+@click.argument("env_name", type=str)
+@click.option("-s", "--seed", default=0, help="seed")
+@click.option("-t", "--times-repeat", default=1, help="times to repeat the script")
+@click.option("-n", "--add-noise", is_flag=True, help="adding noise to actions or not")
+@click.option(
+    "-sc",
+    "--skill-collection/--no-skill-collection",
+    is_flag=True,
+    help="whether to show the skills collection",
+)
 def main(env_name, seed, times_repeat, add_noise, skill_collection):
+
     env = gym.make(env_name)
     scene = env.unwrapped.scene
     scene.renders(True)
@@ -63,27 +73,54 @@ def main(env_name, seed, times_repeat, add_noise, skill_collection):
         obs = env.reset()
 
         agent = ScriptAgent(env)
+        import matplotlib.pyplot as plt
 
         done = False
         i = 0
         rate = Rate(scene.dt)
+
         action = agent.get_action()
         if add_noise:
             make_noised(action)
         frames = []
-
+        j = 0
         while not done and action is not None:
+
             obs, reward, done, info = env.step(action)
+
+            print(obs)
+
+            # cube_label = 3
+
+            # plt.subplot(121)
+            # plt.imshow(obs["rgb_right_cam0"])
+
+            # plt.subplot(122)
+            # plt.imshow(obs["rgb_frontal_cam0"])
+
+            # plt.show()
+
+            # plt.subplot(121)
+            # plt.imshow(obs["mask_right_cam0"])
+
+            # plt.subplot(122)
+            # plt.imshow(obs["mask_frontal_cam0"])
+
+            # plt.show()
+
+            j += 1
             action = agent.get_action()
             if add_noise and action is not None:
                 make_noised(action)
 
         if action is None:
-            info['failure_message'] = 'End of Script.'
-        if not info['success']:
-            click.secho('Failure Seed {}: {}'.format(seed, info['failure_message']), fg='red')
+            info["failure_message"] = "End of Script."
+        if not info["success"]:
+            click.secho(
+                "Failure Seed {}: {}".format(seed, info["failure_message"]), fg="red"
+            )
 
-        print('Success', info['success'])
+        print("Success", info["success"])
 
 
 if __name__ == "__main__":

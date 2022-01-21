@@ -14,7 +14,7 @@ class Script(object):
         self.scene = scene
 
     def joint_move(self, arm, pos=None, orn=None, t_acc=1.0, script_id=None):
-        """ Move in joint space with trap velocity profile """
+        """Move in joint space with trap velocity profile"""
         pos0, orn0 = arm.controller.tool_target
         if pos is None:
             pos = pos0
@@ -25,20 +25,18 @@ class Script(object):
 
         q0 = np.array(arm.controller.joints_target)
         q = arm.kinematics.inverse(pos, orn, q0)
-        assert q is not None, 'Cannot find IK solution for target configuration'
+        assert q is not None, "Cannot find IK solution for target configuration"
         dq_max = np.array(arm.max_joint_velocity) * 0.15
-        velocities = trap_velocity_profile(
-            [q - q0], [dq_max], self._dt, t_acc)
-        for dq, in velocities:
+        velocities = trap_velocity_profile([q - q0], [dq_max], self._dt, t_acc)
+        for (dq,) in velocities:
             self._report_script_to_scene(script_id)
             q = np.array(arm.controller.joints_target)
             v, w = arm.kinematics.forward_vel(q, dq, self._dt)
-            yield dict(
-                linear_velocity=v,
-                angular_velocity=w,
-                joint_velocity=dq)
+            yield dict(linear_velocity=v, angular_velocity=w, joint_velocity=dq)
 
-    def joint_step(self, arm, pos=None, orn=None, t_acc=1.0, tool_cs=True, script_id=None):
+    def joint_step(
+        self, arm, pos=None, orn=None, t_acc=1.0, tool_cs=True, script_id=None
+    ):
         pos0, orn0 = arm.controller.tool_target
         if pos is not None:
             if tool_cs:
@@ -58,7 +56,7 @@ class Script(object):
             yield a
 
     def tool_move(self, arm, pos=None, orn=None, t_acc=1.0, script_id=None):
-        """ Linear move with trap velocity profile """
+        """Linear move with trap velocity profile"""
         max_v, max_w = self._max_tool_velocity
         pos0, orn0 = arm.controller.tool_target
         dist, axis, angle = np.zeros(3), np.zeros(3), 0.0
@@ -71,18 +69,18 @@ class Script(object):
             axis, angle = diff.get_axis(undefined=np.array([0, 0, 0])), diff.angle
 
         velocities = trap_velocity_profile(
-            [dist, angle * axis], [max_v, max_w], self._dt, t_acc)
+            [dist, angle * axis], [max_v, max_w], self._dt, t_acc
+        )
 
         for v, w in velocities:
             self._report_script_to_scene(script_id)
             q = np.array(arm.controller.joints_target)
             dq = arm.kinematics.inverse_vel(q, v, w, self._dt)
-            yield dict(
-                linear_velocity=v,
-                angular_velocity=w,
-                joint_velocity=dq)
+            yield dict(linear_velocity=v, angular_velocity=w, joint_velocity=dq)
 
-    def tool_step(self, arm, pos=None, orn=None, t_acc=1.0, tool_cs=True, script_id=None):
+    def tool_step(
+        self, arm, pos=None, orn=None, t_acc=1.0, tool_cs=True, script_id=None
+    ):
         pos0, orn0 = arm.controller.tool_target
         if pos is not None:
             if tool_cs:
@@ -131,8 +129,7 @@ class Script(object):
 
 
 def trap_velocity_profile(distances, max_velocities, dt, t_acc=1.0):
-    t_max = [np.linalg.norm(d / v)
-             for d, v in zip(distances, max_velocities)]
+    t_max = [np.linalg.norm(d / v) for d, v in zip(distances, max_velocities)]
 
     t_dec = np.max(t_max)
     t_acc = np.min([t_acc, t_dec])

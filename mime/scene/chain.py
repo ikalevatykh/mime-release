@@ -30,5 +30,7 @@ class Chain(JointArray):
 
     @property
     def limits(self):
-        return np.float32(self._lowers)[self._chain_mask], \
-            np.float32(self._uppers)[self._chain_mask]
+        return (
+            np.float32(self._lowers)[self._chain_mask],
+            np.float32(self._uppers)[self._chain_mask],
+        )

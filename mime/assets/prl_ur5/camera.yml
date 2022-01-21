@@ -1,0 +1,49 @@
+camera_cfgs:
+  - right_shoulder_pan_joint: -33
+    right_shoulder_lift_joint: -154
+    right_elbow_joint: -44
+    right_wrist_1_joint: 18
+    right_wrist_2_joint: -60
+    right_wrist_3_joint: 0
+  - right_shoulder_pan_joint: -23
+    right_shoulder_lift_joint: -112
+    right_elbow_joint: -88
+    right_wrist_1_joint: 31
+    right_wrist_2_joint: -60
+    right_wrist_3_joint: -4
+  - right_shoulder_pan_joint: -51
+    right_shoulder_lift_joint: -160
+    right_elbow_joint: -22
+    right_wrist_1_joint: -3
+    right_wrist_2_joint: -52
+    right_wrist_3_joint: 4
+  - right_shoulder_pan_joint: -36
+    right_shoulder_lift_joint: -134
+    right_elbow_joint: -73
+    right_wrist_1_joint: 22
+    right_wrist_2_joint: -54
+    right_wrist_3_joint: 3
+  - right_shoulder_pan_joint: -8
+    right_shoulder_lift_joint: -112
+    right_elbow_joint: -111
+    right_wrist_1_joint: 38
+    right_wrist_2_joint: -66
+    right_wrist_3_joint: 1
+  - right_shoulder_pan_joint: -11
+    right_shoulder_lift_joint: -101
+    right_elbow_joint: -59
+    right_wrist_1_joint: -5
+    right_wrist_2_joint: -63
+    right_wrist_3_joint: -8
+  - right_shoulder_pan_joint: -43
+    right_shoulder_lift_joint: -119
+    right_elbow_joint: -39
+    right_wrist_1_joint: -4
+    right_wrist_2_joint: -50
+    right_wrist_3_joint: -17
+  - right_shoulder_pan_joint: -59
+    right_shoulder_lift_joint: -144
+    right_elbow_joint: -12
+    right_wrist_1_joint: -11
+    right_wrist_2_joint: -50
+    right_wrist_3_joint: -16

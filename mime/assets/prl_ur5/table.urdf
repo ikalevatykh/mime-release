@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot name="prl_ur5_robot">
+<!-- bimanual stand -->
+  <material name="blue_platinum">
+    <color rgba="0.192 0.357 0.451 1"/>
+  </material>
+  <material name="red">
+    <color rgba="1.0 0.0 0.0 1"/>
+  </material>
+  <link name="prl_ur5_base"><inertial><mass value="0.001"/><inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/></inertial></link>
+  <link name="stand_link">
+    <visual>
+      <geometry>
+        <mesh filename="./meshes/prl_ur5/vention_tower_3_bis.obj"/>
+      </geometry>
+      <material name="blue_platinum" />
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="./meshes/prl_ur5/vention_tower_1.stl"/>
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="./meshes/prl_ur5/vention_tower_2.stl"/>
+      </geometry>
+    </collision>
+    <collision>
+      <geometry>
+        <mesh filename="./meshes/prl_ur5/vention_tower_3.stl"/>
+      </geometry>
+    </collision>
+  <inertial><mass value="0.001"/><inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/></inertial></link>
+  <joint name="stand_fix" type="fixed">
+    <parent link="prl_ur5_base"/>
+    <child link="stand_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.0 -0.3825 0.0"/>
+  </joint>
+  <link name="table_link">
+    <visual>
+      <geometry>
+        <mesh filename="./meshes/prl_ur5/vention_table4_decimated6.obj"/>
+      </geometry>
+      <material name="blue_platinum" />
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="./meshes/prl_ur5/vention_table2.stl"/>
+      </geometry>
+    </collision>
+  <inertial><mass value="0.001"/><inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/></inertial></link>
+  <joint name="table_fix" type="fixed">
+    <parent link="prl_ur5_base"/>
+    <child link="table_link"/>
+    <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+  </joint>
+  </robot>
