@@ -8,23 +8,23 @@ class Agent(object):
         # prepare default action
         action = env.action_space.sample()
         for k, v in action.items():
-            if "velocity" in k:
+            if 'velocity' in k:
                 action[k] *= 0
-            elif "torque" in k:
+            elif 'torque' in k:
                 action[k] *= 0
-            elif "force" in k:
+            elif 'force' in k:
                 action[k] *= 0
-            elif "position" in k:
+            elif 'position' in k:
                 action[k] = None
-            elif "orientation" in k:
+            elif 'orientation' in k:
                 action[k] = None
             else:
                 raise NotImplementedError
         self._action = action
         self._spaces = env.action_space.spaces
 
-    def get_action(self, obs=None):
-        action_update = self.get_action_update(obs=obs)
+    def get_action(self):
+        action_update = self.get_action_update()
         if action_update is None:
             return None
         # update action
@@ -35,5 +35,5 @@ class Agent(object):
                 self._action[k] = v
         return deepcopy(self._action)
 
-    def get_action_update(self, obs=None):
+    def get_action_update(self):
         raise NotImplementedError

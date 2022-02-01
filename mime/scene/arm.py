@@ -16,26 +16,26 @@ class Arm(Controllable):
         self._workspace = None
 
     def reset(self, joint_positions):
-        """Instantly moves joints to a specific position.
-        It is best only to do this at the start, while not running
-        the simulation: it overrides all physics simulation.
-        Args:
-         joint_positions (vecN): Target joints position.
+        """ Instantly moves joints to a specific position.
+            It is best only to do this at the start, while not running
+            the simulation: it overrides all physics simulation.
+            Args:
+             joint_positions (vecN): Target joints position.
         """
         self._chain.reset(joint_positions)
         super(Arm, self).reset()
 
     def reset_tool(self, pos, orn=None):
-        """Instantly moves tool to a specific cartesian position.
-        Tries to solve IK for specified position and reset state of joints.
-        It is best only to do this at the start, while not running
-        the simulation: it overrides all physics simulation.
-        Args:
-         pos (vec3): Target position in Cartesian world coordinates.
-         orn (vec4): Target orientation, quaternion (or euler angles).
-                     If not set, current orientation will be used.
-        Returns:
-         True if succeed.
+        """ Instantly moves tool to a specific cartesian position.
+            Tries to solve IK for specified position and reset state of joints.
+            It is best only to do this at the start, while not running
+            the simulation: it overrides all physics simulation.
+            Args:
+             pos (vec3): Target position in Cartesian world coordinates.
+             orn (vec4): Target orientation, quaternion (or euler angles).
+                         If not set, current orientation will be used.
+            Returns:
+             True if succeed.
         """
         if orn is None:
             _, orn = self.tool.state.position
@@ -77,15 +77,12 @@ class Arm(Controllable):
 
     @property
     def position_allowed(self):
-        """Check if joints is in limits and arm not in collision."""
+        """ Check if joints is in limits and arm not in collision. """
         pos = self.joints_position
         low, high = self._chain.limits
         if np.any(pos < low) or np.any(pos > high):
             return False
         collisions = self._body.get_collisions()
-        base_index = [0, 39]
-        if [
-            c for c in collisions if c.link_a.link_index not in base_index
-        ]:  # except base link
+        if [c for c in collisions if c.link_a.link_index != 0]:  # except base link
             return False
         return True
