@@ -1,81 +1,57 @@
 import numpy as np
 import pybullet as pb  # only used for euler2quat
 
-from math import pi
 from .table_scene import TableScene
 from .table_modder import TableModder
 from ..script import Script
-from mime.config import assets_path
-from .utils import load_textures
-
-OBJ_TEXTURES_PATH = assets_path() / "textures" / "objects" / "simple"
 
 
 class PickScene(TableScene):
     def __init__(self, **kwargs):
         super(PickScene, self).__init__(**kwargs)
         self._target = None
+        self._modder = TableModder(self, self._randomize)
 
         # linear velocity x2 for the real setup
         v, w = self._max_tool_velocity
         self._max_tool_velocity = (1.5 * v, w)
 
-        if self._rand_obj:
-            self._cube_size_range = {"low": 0.03, "high": 0.07}
-        else:
-            self._cube_size_range = 0.05
+        self._cube_size_range = {'low': 0.03, 'high': 0.08}
 
-    def load(self, np_random):
-        super(PickScene, self).load(np_random)
+    def load(self):
+        super(PickScene, self).load()
 
-    def load_textures(self, np_random):
-        super().load_textures(np_random)
-        self._modder._textures["objects"] = load_textures(OBJ_TEXTURES_PATH, np_random)
-
-    def reset(
-        self,
-        np_random,
-        gripper_pose=None,
-        cube_pose=None,
-    ):
+    def reset(self, np_random):
         """
         Reset the cube position and arm position.
         """
-
         super(PickScene, self).reset(np_random)
         modder = self._modder
 
-        # load and randomize cage
-        modder.load_cage(np_random)
-        if self._domain_rand:
-            modder.randomize_cage_visual(np_random)
-
         # define workspace, tool position and cube position
-        low, high = self._object_workspace
+        low, high = self.workspace
         low, high = np.array(low.copy()), np.array(high.copy())
+        low[:2] += 0.05
+        high[:2] -= 0.05
 
-        if cube_pose is None:
-            cube_pos = np_random.uniform(low=low, high=high)
-        else:
-            cube_pos, cube_ori = cube_pose
+        tool_pos = np_random.uniform(low=low, high=high)
+        cube_pos = np_random.uniform(low=low, high=high)
 
         if self._target is not None:
             self._target.remove()
 
-        gripper_pos, gripper_orn = self.random_gripper_pose(np_random)
-        q0 = self.robot.arm.controller.joints_target
-        q = self.robot.arm.kinematics.inverse(gripper_pos, gripper_orn, q0)
-        self.robot.arm.reset(q)
+        # set arm to a random position
+        self.robot.arm.reset_tool(tool_pos)
+
+        # load and set cage to a random position
+        modder.load_cage(np_random)
 
         # load cube, set to random size and random position
-        cube, cube_size = modder.load_mesh("cube", self._cube_size_range, np_random)
-        cube_color = (11.0 / 255.0, 124.0 / 255.0, 96.0 / 255.0, 1.0)
-        cube.color = cube_color
+        cube, cube_size = modder.load_mesh('cube', self._cube_size_range, np_random)
+        # cube.color = (0.0, 1.0, 0.0, 1.0)
         self._cube_size = cube_size
         self._target = cube
         self._target.position = (cube_pos[0], cube_pos[1], self._cube_size / 2)
-        if self._domain_rand:
-            modder.randomize_object_color(np_random, cube, cube_color)
 
     def script(self):
         """
@@ -90,7 +66,7 @@ class PickScene(TableScene):
             sc.tool_move(arm, pick_pos + [0, 0, 0.1]),
             sc.tool_move(arm, pick_pos + [0, 0, 0.01]),
             sc.grip_close(grip),
-            sc.tool_move(arm, pick_pos + [0, 0, 0.12]),
+            sc.tool_move(arm, pick_pos + [0, 0, 0.12])
         ]
 
     @property
@@ -100,7 +76,7 @@ class PickScene(TableScene):
         return np.array(pos_cube) - np.array(pos_base)
 
     @property
-    def target_orientation(self):
+    def target_rotation(self):
         _, orn_cube = self._target.position
         orn_cube_euler = pb.getEulerFromQuaternion(orn_cube)
         return np.array([orn_cube_euler[-1] / np.pi * 180])
@@ -109,10 +85,6 @@ class PickScene(TableScene):
     def distance_to_target(self):
         tool_pos, _ = self.robot.arm.tool.state.position
         return np.subtract(self.target_position, tool_pos)
-
-    def gripper_pose(self):
-        tool_pos, tool_orn = self.robot.arm.tool.state.position
-        return (tool_pos, tool_orn)
 
     def get_reward(self, action):
         return 0
@@ -123,12 +95,11 @@ class PickScene(TableScene):
 
 def test_scene():
     from time import sleep
-
-    scene = PickScene(robot_type="PRL_UR5")
+    scene = PickScene(robot_type='UR5')
     scene.renders(True)
     np_random = np.random.RandomState(1)
     while True:
-        obs = scene.reset(np_random)
+        scene.reset(np_random)
         sleep(1)
 
 

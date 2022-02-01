@@ -1,5 +1,4 @@
 import numpy
-import math
 from numpy.linalg import inv, norm
 from pyquaternion import Quaternion
 import ur5_kinematics
@@ -13,27 +12,29 @@ from .arm_control import ArmPositionController
 from .robotiq_gripper import *
 
 
-class UR5:
-    def __init__(
-        self, client_id, with_gripper=False, pos=(0, 0, 0), orn=(0, 0, 0, 1), fixed=True
-    ):
+class UR5():
+    def __init__(self,
+                 client_id,
+                 with_gripper=False,
+                 pos=(0, 0, 0),
+                 orn=(0, 0, 0, 1),
+                 fixed=True):
 
-        model = "willbot_paris.urdf"
+        model = 'willbot_paris.urdf'
 
         flags = pb.URDF_USE_INERTIA_FROM_FILE
         flags |= pb.URDF_USE_SELF_COLLISION
         flags |= pb.URDF_USE_SELF_COLLISION_EXCLUDE_ALL_PARENTS
         flags |= pb.URDF_ENABLE_CACHED_GRAPHICS_SHAPES
-        # flags |= pb.URDF_ENABLE_SLEEPING
+        #flags |= pb.URDF_ENABLE_SLEEPING
         body = Body.load(
-            "ur_description/" + model,
+            'ur_description/' + model,
             flags=flags,
             useFixedBase=fixed,
-            client_id=client_id,
-        )
+            client_id=client_id)
         body.position = pos, orn
 
-        arm = Arm(body, tip_link_name="tool")
+        arm = Arm(body, tip_link_name='tool')
         arm.controller = ArmPositionController(arm, gains=0.1)
         arm._kinematics = UR5Kinematics(arm._chain)
 
@@ -48,7 +49,7 @@ class UR5:
         self.client_id = client_id
 
     def enable_wrist_camera(self, width=320, height=240):
-        link = self._body.link("wrist_camera")
+        link = self._body.link('wrist_camera')
         cam = Camera(width, height)
         cam.attach(link=link, orn=(0, 0, np.pi))
         self._wrist_camera = cam
@@ -66,24 +67,23 @@ class UR5:
         return self._wrist_camera
 
 
-class UR5Kinematics:
+class UR5Kinematics():
     """
     These kinematics find the tranfrom from the base link to the end effector.
     """
 
-    def __init__(self, chain: Chain, prefix=""):
+    def __init__(self, chain: Chain):
         body = Body(chain.body_id, chain.client_id)
 
         def H(link_name):
             state = body.link(link_name).state
             return _homogenous(*state.world_link_frame_position)
 
-        Tw0 = H(f"{prefix}base_link")
-
+        Tw0 = H('base_link')
         T0w = np.linalg.inv(Tw0)
 
-        Tw6 = H(f"{prefix}ee_link")
-        Twt = H(chain.tip.info.link_name)
+        Tw6 = H('ee_link')
+        Twt = H('tool')
         Tt6 = np.dot(np.linalg.inv(Twt), Tw6)
         T6t = np.linalg.inv(Tt6)
 
@@ -115,7 +115,7 @@ class UR5Kinematics:
 
         Arguments:
             desc {str} -- configuraton description like 'right up forward'.
-                            Posible options: left/right shoulder,
+                            Posiible options: left/right shoulder,
                             up/down elbow, forward/backward wrist
         """
 
@@ -125,12 +125,11 @@ class UR5Kinematics:
             up=(1, 1),
             down=(1, -1),
             forward=(2, 1),
-            backward=(2, -1),
-        )
+            backward=(2, -1))
 
         indicies = np.array([0, 0, 0])
-        for name in desc.split(" "):
-            assert name in config, "Unknown kinematic index: {}".format(name)
+        for name in desc.split(' '):
+            assert name in config, 'Unknown kinematic index: {}'.format(name)
             i, val = config[name]
             indicies[i] = val
 
@@ -177,7 +176,11 @@ class UR5Kinematics:
         mask &= q_sol[:, 1] < 0
         q_sol = q_sol[mask]
 
-        mask = [all(self._get_configuration(q) * self.kin_indicies >= 0) for q in q_sol]
+        mask = [
+            all(self._get_configuration(q) * self.kin_indicies >= 0)
+            for q in q_sol
+        ]
+
         q_sol = q_sol[mask]
 
         if np.any(q_sol) and q_init is not None:
@@ -200,8 +203,6 @@ class UR5Kinematics:
         Returns:
             list(6) / None -- joint positions or None if solution not found
         """
-        if len(orn) == 3:
-            orn = pb.getQuaternionFromEuler(orn)
 
         if q_init is None:
             q_init = np.zeros(6, dtype=np.float64)

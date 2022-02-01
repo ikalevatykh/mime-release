@@ -14,7 +14,7 @@ class Command(enum.Enum):
     ToolPosition = 4
 
 
-class ArmPositionController:
+class ArmPositionController():
     def __init__(self, arm, gains):
         """
         Constructor.
@@ -62,7 +62,8 @@ class ArmPositionController:
 
     @property
     def joints_error(self):
-        return np.subtract(self._joints_target_position, self._arm.joints_position)
+        return np.subtract(self._joints_target_position,
+         self._arm.joints_position)
 
     @property
     def joints_target_velocity(self):
@@ -125,8 +126,7 @@ class ArmPositionController:
             dq = self._joints_target_velocity
             self._joints_step(dt, dq)
             self._tool_target_position = self._arm.kinematics.forward(
-                self._joints_target_position
-            )
+                self._joints_target_position)
         elif Command.ToolVelocity == self._command:
             v, w = self._tool_target_velocity
             self._tool_step(dt, v, w)
@@ -140,11 +140,8 @@ class ArmPositionController:
     def _joints_move(self, dt, joints_pos):
         joints_vel = np.subtract(joints_pos, self._joints_target_position) / dt
         self._arm.joints.control(
-            controlMode=pb.POSITION_CONTROL,
-            forces=self._max_forces,
-            targetPositions=joints_pos,
-            positionGains=self._gains,
-        )
+             controlMode=pb.POSITION_CONTROL, forces=self._max_forces,
+             targetPositions=joints_pos, positionGains=self._gains)
         self._joints_target_position = joints_pos
         self._joints_target_velocity = joints_vel
 
